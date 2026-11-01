@@ -250,6 +250,30 @@ namespace MagicRemote.Ui
         }
     }
 
+    /// <summary>A small outlined TV, for the paired TV list.</summary>
+    class TvIcon : Control
+    {
+        public TvIcon()
+        {
+            Size = new Size(36, 36);
+            Margin = new Padding(0, 0, 16, 0);
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.Clear(Theme.Behind(this));
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            float k = Width / 36f;
+            using (var pen = new Pen(Theme.Muted, 2 * k) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                using (var screen = Theme.Rounded(new RectangleF(3 * k, 7 * k, 30 * k, 19 * k), 3 * k)) g.DrawPath(pen, screen);
+                g.DrawLine(pen, 12 * k, 31 * k, 24 * k, 31 * k);
+            }
+        }
+    }
+
     /// <summary>A selectable picture card (pointer styles).</summary>
     class Tile : Control
     {
@@ -457,8 +481,15 @@ namespace MagicRemote.Ui
             FlatStyle = FlatStyle.Flat;
             BackColor = Theme.Field;
             ForeColor = Theme.Text;
-            ItemHeight = FieldHeight;
+            // No ItemHeight here: setting it creates the window there and then, before the style is set.
         }
+
+        /// <summary>
+        /// Completes what's typed with the first matching item, like Windows' "append" autocomplete. Windows'
+        /// own autocomplete recreates the window when it's switched on, which broke clicking a list open.
+        /// </summary>
+        public bool CompleteTyping { get; set; }
+        bool _deleting;
 
         int FieldHeight => Font.Height + (int)Theme.Px(this, 14);
         int TextInset => (int)Theme.Px(this, 14);
@@ -467,6 +498,7 @@ namespace MagicRemote.Ui
         protected override void OnFontChanged(EventArgs e)
         {
             base.OnFontChanged(e);
+            if (!IsHandleCreated) return;
             ItemHeight = FieldHeight;
             PlaceEditBox();
         }
@@ -474,7 +506,29 @@ namespace MagicRemote.Ui
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
+            ItemHeight = FieldHeight;
             PlaceEditBox();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            _deleting = e.KeyCode == Keys.Back || e.KeyCode == Keys.Delete;
+            base.OnKeyDown(e);
+        }
+
+        protected override void OnTextUpdate(EventArgs e)
+        {
+            base.OnTextUpdate(e);
+            var typed = Text;
+            if (!CompleteTyping || _deleting || DropDownStyle != ComboBoxStyle.DropDown || typed.Length == 0 || SelectionStart != typed.Length) return;
+            foreach (var item in Items)
+            {
+                var text = GetItemText(item);
+                if (text.Length <= typed.Length || !text.StartsWith(typed, StringComparison.CurrentCultureIgnoreCase)) continue;
+                Text = typed + text.Substring(typed.Length);
+                Select(typed.Length, text.Length - typed.Length);
+                return;
+            }
         }
 
         protected override void OnResize(EventArgs e)

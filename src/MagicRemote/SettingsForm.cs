@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -35,6 +36,9 @@ namespace MagicRemote
         readonly PageFade _fade;
         string _current;
         bool _sized, _searching;
+        string _tvState;
+        HashSet<string> _connectedTvs = new HashSet<string>();
+        Dictionary<string, string> _tvVersions = new Dictionary<string, string>();
 
         /// <summary>Raised after a TV was installed and paired.</summary>
         public event Action Paired;
@@ -174,7 +178,14 @@ namespace MagicRemote
 
             var options = column.Add(new Card());
             options.Add(Make.Heading("Options"));
-            if (!AdminMode.IsEnabled)
+            if (AdminMode.IsEnabled)
+            {
+                // The administrator copy is started by a Windows task at sign-in, so it always starts with Windows.
+                options.Add(new Toggle("Start with Windows") { Checked = true, Enabled = false });
+                var why = options.Add(Make.Text("Always on while the remote works in administrator windows: Windows starts MagicRemote at sign-in.", muted: true, small: true));
+                why.Margin = new Padding(60, 0, 0, 4); // under the toggle's text
+            }
+            else
             {
                 var autostart = options.Add(new Toggle("Start with Windows") { Checked = Autostart.IsEnabled });
                 autostart.CheckedChanged += (s, e) =>
@@ -309,6 +320,17 @@ namespace MagicRemote
         }
 
         /// <summary>One row per paired TV: name, address, Forget.</summary>
+        /// <summary>Which TVs are connected and the TV app version each reported, kept current by the tray.</summary>
+        public void SetTvs(ICollection<string> connected, IDictionary<string, string> versions)
+        {
+            var state = string.Join("|", connected) + "#" + string.Join("|", versions.Select(v => v.Key + "=" + v.Value));
+            if (state == _tvState) return;
+            _tvState = state;
+            _connectedTvs = new HashSet<string>(connected);
+            _tvVersions = new Dictionary<string, string>(versions);
+            RefreshPaired();
+        }
+
         void RefreshPaired()
         {
             _pairedList.SuspendLayout();
@@ -317,12 +339,19 @@ namespace MagicRemote
             if (tvs.Count == 0) Adopt(_pairedList.Add(Make.Text("No TV set up yet. Follow the steps below.", muted: true)));
             foreach (var tv in tvs)
             {
-                var row = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 6) };
+                // As in the design: TV icon, "Name · address" over "Connected · TV app 1.4.2", Forget on the right.
+                var row = new TableLayoutPanel { ColumnCount = 3, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 4, 0, 4) };
+                row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
                 row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
                 row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-                var names = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0) };
-                names.Controls.Add(new Label { Text = tv.Name, Font = Theme.Strong, ForeColor = Theme.Text, AutoSize = true, Margin = new Padding(0) });
-                names.Controls.Add(new Label { Text = tv.Address ?? "", Font = Theme.Small, ForeColor = Theme.Muted, AutoSize = true, Margin = new Padding(0) });
+                row.Controls.Add(new TvIcon { Anchor = AnchorStyles.Left });
+                var names = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
+                var title = string.IsNullOrEmpty(tv.Address) ? tv.Name : tv.Name + " · " + tv.Address;
+                names.Controls.Add(new Label { Text = title, Font = Theme.Strong, ForeColor = Theme.Text, AutoSize = true, Margin = new Padding(0, 0, 0, 2) });
+                bool connected = _connectedTvs.Contains(tv.Name);
+                var status = connected ? "Connected" : "Paired";
+                if (_tvVersions.TryGetValue(tv.Name, out var version)) status += " · TV app " + (version ?? "older than 1.4");
+                names.Controls.Add(new Label { Text = status, Font = Theme.Small, ForeColor = connected ? Theme.Accent : Theme.Muted, AutoSize = true, Margin = new Padding(0) });
                 row.Controls.Add(names);
                 var forget = new PillButton("Forget", PillKind.Ghost) { Anchor = AnchorStyles.Right, ForeColor = Theme.Danger };
                 var id = tv.Id;

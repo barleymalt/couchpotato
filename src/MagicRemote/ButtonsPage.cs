@@ -57,15 +57,10 @@ namespace MagicRemote
                 choice.Anchor = AnchorStyles.Left | AnchorStyles.Right;
                 choice.MaxDropDownItems = 16;
                 // Opening this page used to stall: every list was filled and given Windows autocomplete up front.
-                // Now a list gets its items, and autocomplete, only when it's used.
+                // Now a list gets its items only when it's used.
                 choice.DropDown += (s, e) => FillChoices(choice);
-                choice.Enter += (s, e) =>
-                {
-                    FillChoices(choice);
-                    if (choice.AutoCompleteMode != AutoCompleteMode.None) return;
-                    choice.AutoCompleteSource = AutoCompleteSource.ListItems;
-                    choice.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
-                };
+                choice.Enter += (s, e) => FillChoices(choice);
+                ((Combo)choice).CompleteTyping = true;
                 var key = button.Key;
                 choice.SelectionChangeCommitted += (s, e) => Save(key, (string)choice.SelectedItem);
                 choice.Leave += (s, e) => Save(key, choice.Text);
@@ -117,7 +112,12 @@ namespace MagicRemote
         public void Highlight(ushort code)
         {
             var name = ButtonCatalog.NameOf(code);
-            if (name == null || !_labels.TryGetValue(name, out var label)) return;
+            if (name == null || !_labels.TryGetValue(name, out var label))
+            {
+                // Shown here only, never logged: helps find out what an unlisted button sends.
+                Status("The remote sent a button this page doesn't list (code " + code + ").", Theme.Muted);
+                return;
+            }
             StopFlash();
             _scroll.ScrollControlIntoView(_choices[name]);
             label.ForeColor = Theme.Accent;

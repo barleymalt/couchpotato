@@ -23,6 +23,7 @@ namespace MagicRemote
         readonly Dictionary<IPAddress, DateTime> _warned = new Dictionary<IPAddress, DateTime>();
         readonly List<string> _connected = new List<string>();
         readonly HashSet<string> _versionChecked = new HashSet<string>();
+        readonly Dictionary<string, string> _tvVersions = new Dictionary<string, string>(); // null: older than 1.4.0
         SettingsForm _settings;
 
         public TrayApp(ConfigStore store, AgentServer server, bool showSetup)
@@ -68,7 +69,12 @@ namespace MagicRemote
             });
             server.AuthenticationFailed += ip => OnUi(() => WarnRefused(ip));
             server.KeyPressed += code => OnUi(() => _settings?.OnRemoteKey(code));
-            server.TvAppVersion += (name, version) => OnUi(() => CheckTvVersion(name, version));
+            server.TvAppVersion += (name, version) => OnUi(() =>
+            {
+                _tvVersions[name] = version;
+                UpdateStatus();
+                CheckTvVersion(name, version);
+            });
             UpdateStatus();
 
             if (showSetup) ShowSettings("tv");
@@ -102,6 +108,7 @@ namespace MagicRemote
             else text = "Connected to " + _connected[_connected.Count - 1];
             _status.Text = "MagicRemote " + Program.Version + " · " + text;
             _settings?.SetStatus(text, _connected.Count > 0);
+            _settings?.SetTvs(_connected, _tvVersions);
             var tip = "MagicRemote " + Program.Version + ": " + text;
             _icon.Text = tip.Length > 63 ? tip.Substring(0, 63) : tip; // Windows' limit for tray tooltips
         }
@@ -114,7 +121,13 @@ namespace MagicRemote
             timer.Tick += (s, e) =>
             {
                 timer.Dispose();
-                if (_connected.Contains(name)) CheckTvVersion(name, null);
+                if (!_connected.Contains(name)) return;
+                if (!_tvVersions.ContainsKey(name))
+                {
+                    _tvVersions[name] = null;
+                    UpdateStatus();
+                }
+                CheckTvVersion(name, null);
             };
             timer.Start();
         }

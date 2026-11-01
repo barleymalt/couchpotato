@@ -2,6 +2,13 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.6.4 (TV app 1.4.2: no need to reinstall it)
+- Fixed: switching tabs flickered the old page for a moment before fading.
+- Fixed: opening a list on the Buttons page could fail with "Error creating window handle". Typing in a list still completes the action name.
+- Your TV shows the TV like the design: name · address, then Connected or Paired and the TV app version.
+- Start with Windows is shown in administrator mode too, as always on (Windows starts MagicRemote at sign-in there).
+- The Buttons page says when the remote sends a button it doesn't list.
+
 ## 1.6.3 (TV app 1.4.2: no need to reinstall it)
 - Switching tabs cross-fades, and the new page is drawn before it shows, so there's no stutter (off when Windows' animation effects are off).
 - Drop-down lists match the theme: a rounded dark field with a chevron, and a dark list.
