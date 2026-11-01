@@ -24,7 +24,7 @@ namespace MagicRemote
 
         readonly ConfigStore _store;
         readonly AgentServer _server;
-        readonly ComboBox _tv = Make.Combo(300, editable: true);
+        readonly Picker _tv = new Picker(300, "Type an IP address…");
         readonly PillButton _search = new PillButton("Search again");
         readonly FieldBox _passphrase = new FieldBox(180);
         readonly PillButton _install = new PillButton("Install on TV", PillKind.Primary);
@@ -228,24 +228,22 @@ namespace MagicRemote
         async Task SearchAsync()
         {
             _search.Enabled = false;
-            var typed = _tv.Text;
-            _tv.Items.Clear();
+            var typed = _tv.List.Custom; // a typed address stays
             _searching = true;
             Progress("Looking for LG TVs on your network…", Theme.Muted);
             try
             {
                 var found = await TvFinder.SearchAsync(TimeSpan.FromSeconds(3));
-                foreach (var tv in found) _tv.Items.Add(tv);
+                _tv.SetItems(found.Cast<object>());
                 if (found.Count > 0)
                 {
-                    _tv.SelectedIndex = 0;
+                    if (typed.Length == 0) _tv.List.SelectedIndex = 0;
                     Progress(found.Count == 1 ? "Found " + found[0] + "." : "Found " + found.Count + " TVs. Pick yours.", Theme.Muted);
                 }
                 else
                 {
-                    _tv.Text = typed;
-                    Progress("No TV answered. Check that it's on and on the same network, or type its IP address " +
-                             "(TV Settings → Network → Wi-Fi or Wired connection).", Theme.Muted);
+                    Progress("No TV answered. Check that it's on and on the same network, or pick Type an IP address " +
+                             "(it's in TV Settings → Network → Wi-Fi or Wired connection).", Theme.Muted);
                 }
             }
             catch (Exception e)
@@ -261,12 +259,11 @@ namespace MagicRemote
 
         async Task InstallAsync()
         {
-            // A typed address wins over a stale selection in the editable list.
-            var tv = _tv.SelectedItem is FoundTv selected && selected.ToString() == _tv.Text ? selected : null;
-            if (tv == null && IPAddress.TryParse(_tv.Text.Trim(), out var typed)) tv = new FoundTv { Address = typed, Name = "LG TV (" + typed + ")" };
+            var tv = _tv.List.SelectedItem as FoundTv;
+            if (tv == null && IPAddress.TryParse(_tv.Value.Trim(), out var typed)) tv = new FoundTv { Address = typed, Name = "LG TV (" + typed + ")" };
             if (tv == null)
             {
-                Progress("Pick a TV from the list or type its IP address.", Theme.Danger);
+                Progress("Pick a TV from the list, or pick Type an IP address and type it.", Theme.Danger);
                 return;
             }
             if (_passphrase.Box.Text.Trim().Length == 0)

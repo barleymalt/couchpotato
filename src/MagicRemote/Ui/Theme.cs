@@ -153,12 +153,25 @@ namespace MagicRemote.Ui
             return path;
         }
 
+        /// <summary>
+        /// Windows' own hand pointer. WinForms' Cursors.Hand is a picture of its own, so it wouldn't change
+        /// to the TV pointer style's hand like every other app's links do.
+        /// </summary>
+        public static readonly Cursor Hand = SystemHand();
+
+        static Cursor SystemHand()
+        {
+            var handle = LoadCursor(IntPtr.Zero, (IntPtr)32649 /* IDC_HAND */);
+            return handle == IntPtr.Zero ? Cursors.Hand : new Cursor(handle);
+        }
+
         /// <summary>Scales a 96-DPI length to the current <see cref="Dpi"/>.</summary>
         public static float Px(Control c, float value) => value * Dpi / 96f;
 
         /// <summary>The colour behind a control, for painting its rounded corners.</summary>
         public static Color Behind(Control c) => c.Parent?.BackColor ?? Background;
 
+        [DllImport("user32.dll")] static extern IntPtr LoadCursor(IntPtr instance, IntPtr name);
         [DllImport("gdi32.dll")] static extern IntPtr AddFontMemResourceEx(IntPtr font, uint length, IntPtr reserved, out uint count);
         [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hwnd, string app, string idList);

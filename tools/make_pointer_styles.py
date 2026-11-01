@@ -197,8 +197,20 @@ def arc_spinner():
             + '<circle cx="128" cy="128" r="12" fill="url(#ember)"/></g>')
 
 
+ARC_ARROW = [(24, 18), (24, 198), (66, 158), (98, 224), (128, 210), (98, 146), (156, 146)]
+
+
+def arc_arrow():
+    """The normal pointer: a plain arrow in iron and gold, so it can't be mistaken for the gauntlet (links)."""
+    return ('<g filter="url(#shadow)">'
+            + plate(f'<path d="{pts(ARC_ARROW)}"/>', rim_width=6)
+            + '<path d="M38,60 L38,160 L62,138" fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>'
+            + '<circle cx="64" cy="112" r="10" fill="url(#ember)" stroke="url(#gold)" stroke-width="3"/>'
+            + '<circle cx="61" cy="109" r="3" fill="#fff" opacity="0.75"/></g>')
+
+
 def arc_badge(glyph):
-    return (f'<g transform="scale(0.82)">{gauntlet()}</g>'
+    return (f'<g transform="scale(0.82)">{arc_arrow()}</g>'
             '<g filter="url(#shadow)"><circle cx="190" cy="190" r="52" fill="#2B1C13" stroke="' + OUTLINE + '" stroke-width="12"/>'
             '<circle cx="190" cy="190" r="52" fill="none" stroke="url(#gold)" stroke-width="6"/>'
             '<circle cx="190" cy="190" r="42" fill="none" stroke="#8A5620" stroke-width="1.5" stroke-dasharray="2 5"/>' + glyph + "</g>")
@@ -206,7 +218,7 @@ def arc_badge(glyph):
 
 def arcane():
     a = {}
-    a["normal"] = gauntlet(), (29, 22)
+    a["normal"] = arc_arrow(), (24, 18)
     sparkle = ('<g filter="url(#glow)"><path d="M22,2 Q25,15 38,18 Q25,21 22,34 Q19,21 6,18 Q19,15 22,2 Z" fill="#FFF2C8"/>'
                '<circle cx="22" cy="18" r="5" fill="#fff"/></g>')
     a["link"] = gauntlet(sparkle), (29, 22)
@@ -217,7 +229,7 @@ def arcane():
              + plate('<path d="M128,108 L142,128 L128,148 L114,128 Z"/>', fill="url(#ember)", rim="url(#gold)", rim_width=3) + "</g>")
     a["text"] = ibeam, (128, 128)
     a["busy"] = arc_spinner(), (128, 128)
-    a["working"] = gauntlet(), (29, 22)
+    a["working"] = arc_arrow(), (24, 18)
     lines = "".join(plate(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3"/>', fill="url(#gold)", rim=GOLD_DARK, rim_width=2)
                     for x, y, w, h in ((121, 34, 14, 70), (121, 152, 14, 70), (34, 121, 70, 14), (152, 121, 70, 14)))
     tips = "".join(f'<g transform="rotate({r} 128 128)">{plate(leaf(128, 10, 46, 17))}</g>' for r in (0, 90, 180, 270))
@@ -248,10 +260,10 @@ def arcane():
                + plate(leaf(128, 12, 92, 26))
                + plate('<rect x="94" y="88" width="68" height="14" rx="5"/>', fill="url(#gold)", rim=GOLD_DARK, rim_width=3) + "</g>", (128, 14))
     gold_glyph = 'fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"'
-    a["help"] = arc_badge(f'<path d="M172,178 Q172,158 190,158 Q208,158 208,175 Q208,188 192,194 L190,206" {gold_glyph}/><circle cx="190" cy="220" r="6" fill="url(#gold)"/>'), (24, 18)
+    a["help"] = arc_badge(f'<path d="M172,178 Q172,158 190,158 Q208,158 208,175 Q208,188 192,194 L190,206" {gold_glyph}/><circle cx="190" cy="220" r="6" fill="url(#gold)"/>'), (20, 15)
     a["location"] = arc_badge('<path d="M190,232 Q166,202 166,184 Q166,160 190,160 Q214,160 214,184 Q214,202 190,232 Z" fill="url(#gold)" stroke="' + GOLD_DARK + '" stroke-width="3"/>'
-                              '<circle cx="190" cy="184" r="9" fill="url(#ember)"/>'), (24, 18)
-    a["person"] = arc_badge('<circle cx="190" cy="176" r="13" fill="url(#gold)"/><path d="M164,222 Q166,196 190,196 Q214,196 216,222 Z" fill="url(#gold)"/>'), (24, 18)
+                              '<circle cx="190" cy="184" r="9" fill="url(#ember)"/>'), (20, 15)
+    a["person"] = arc_badge('<circle cx="190" cy="176" r="13" fill="url(#gold)"/><path d="M164,222 Q166,196 190,196 Q214,196 216,222 Z" fill="url(#gold)"/>'), (20, 15)
     return {k: (svg(ARC_DEFS, v[0]), v[1]) for k, v in a.items()}
 
 

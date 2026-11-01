@@ -479,7 +479,10 @@
 			clearTimeout(press.timer);
 			press.timer = 0;
 			press.dragging = true;
+			// Press where the drag started (a window edge is only a few pixels wide), then catch up.
+			send(M.move(press.x / window.innerWidth, press.y / window.innerHeight));
 			send(M.button(P.BUTTON.LEFT, true));
+			sendPointer(e);
 		}
 	});
 

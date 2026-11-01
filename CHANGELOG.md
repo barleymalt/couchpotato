@@ -2,6 +2,13 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.7.1 (TV app 1.4.3: reinstall it for the drag fix)
+- Fixed: dragging (resizing a window by its edge, selecting text) pressed the button only after the pointer had moved away from where you pressed. It now presses where the drag starts. TV app change.
+- Lists are plain lists: a click anywhere opens them, the arrow is always visible, and they no longer stay highlighted. To type keys or an IP address, pick Other keys / Type an IP address.
+- An open list is at most half the screen tall.
+- MagicRemote's own buttons and links use Windows' hand pointer, so they follow the TV pointer style.
+- Arcane's normal pointer is a bronze arrow; the gauntlet is for links.
+
 ## 1.7.0 (TV app 1.4.2: no need to reinstall it)
 - New pointer styles **Neon** (cyberpunk) and **Arcane** (dark fantasy), replacing Sci-fi and Fantasy. They cover all 17 Windows pointers: links, text, resizing, moving, not allowed, help, pen and more.
 - Busy and Working in background are animated, in every built-in style.

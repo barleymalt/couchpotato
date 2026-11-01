@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -66,7 +68,7 @@ namespace MagicRemote.Ui
             Font = Theme.Strong;
             Padding = new Padding(20, 9, 20, 9);
             Margin = new Padding(0, 0, 8, 0);
-            Cursor = Cursors.Hand;
+            Cursor = Theme.Hand;
             SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer, true);
         }
 
@@ -141,7 +143,7 @@ namespace MagicRemote.Ui
         {
             Text = text;
             AutoSize = true;
-            Cursor = Cursors.Hand;
+            Cursor = Theme.Hand;
             Margin = new Padding(0, 4, 0, 4);
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
         }
@@ -288,7 +290,7 @@ namespace MagicRemote.Ui
             _image = image;
             Size = new Size(124, 128);
             Margin = new Padding(0, 0, 10, 10);
-            Cursor = Cursors.Hand;
+            Cursor = Theme.Hand;
             TabStop = true;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer |
                      ControlStyles.Selectable, true);
@@ -380,20 +382,26 @@ namespace MagicRemote.Ui
             Margin = new Padding(0, 0, 0, 6),
         };
 
-        public static LinkLabel Link(string text, Action onClick)
+        /// <summary>A link: teal text, underlined on hover, with Windows' hand (a LinkLabel forces WinForms' own).</summary>
+        public static Label Link(string text, Action onClick)
         {
-            var link = new LinkLabel
+            var link = new Label
             {
                 Text = text,
                 AutoSize = true,
-                LinkColor = Theme.Accent,
-                ActiveLinkColor = Theme.AccentHover,
-                VisitedLinkColor = Theme.Accent,
-                LinkBehavior = LinkBehavior.HoverUnderline,
+                ForeColor = Theme.Accent,
                 Font = Theme.Strong,
+                Cursor = Theme.Hand,
                 Margin = new Padding(0, 0, 0, 4),
             };
-            link.LinkClicked += (s, e) => onClick();
+            link.MouseEnter += (s, e) => link.Font = new Font(Theme.Strong, FontStyle.Underline);
+            link.MouseLeave += (s, e) =>
+            {
+                var underlined = link.Font;
+                link.Font = Theme.Strong;
+                if (!ReferenceEquals(underlined, Theme.Strong)) underlined.Dispose();
+            };
+            link.Click += (s, e) => onClick();
             return link;
         }
 
@@ -404,13 +412,6 @@ namespace MagicRemote.Ui
             row.Controls.AddRange(controls);
             return row;
         }
-
-        public static ComboBox Combo(int width, bool editable) => new Combo
-        {
-            Width = width,
-            DropDownStyle = editable ? ComboBoxStyle.DropDown : ComboBoxStyle.DropDownList,
-            Margin = new Padding(0, 3, 8, 3),
-        };
 
         /// <summary>A scrolling page whose content is one column.</summary>
         public static Panel Page(out Card column)
@@ -467,83 +468,96 @@ namespace MagicRemote.Ui
     }
 
     /// <summary>
-    /// A combo box in the theme: a rounded dark field with a chevron, and a dark list. Windows still does
-    /// the typing (the edit box inside), the list and autocomplete; only the drawing is ours.
+    /// A drop-down list in the theme: a rounded dark field with a chevron, opened by a click anywhere on
+    /// it, and a dark list at most half the screen tall. Only the drawing is ours; Windows runs the list.
+    /// Values that aren't in the list are shown through <see cref="SetValue"/>.
     /// </summary>
     class Combo : ComboBox
     {
         const int WM_PAINT = 0x0F;
         bool _listThemed;
 
+        /// <summary>The last item, which <see cref="Picker"/> turns into a text box: "Other keys…".</summary>
+        public sealed class OtherItem
+        {
+            public string Label;
+            public override string ToString() => Label;
+        }
+
+        /// <summary>A value that isn't one of the items (typed keys, an address), shown at the top.</summary>
+        sealed class CustomItem
+        {
+            public string Text;
+            public override string ToString() => Text;
+        }
+
         public Combo()
         {
+            DropDownStyle = ComboBoxStyle.DropDownList;
             DrawMode = DrawMode.OwnerDrawFixed;
             FlatStyle = FlatStyle.Flat;
             BackColor = Theme.Field;
             ForeColor = Theme.Text;
-            // No ItemHeight here: setting it creates the window there and then, before the style is set.
+            Cursor = Theme.Hand;
+            // No ItemHeight here: setting it creates the window there and then.
         }
 
-        /// <summary>
-        /// Completes what's typed with the first matching item, like Windows' "append" autocomplete. Windows'
-        /// own autocomplete recreates the window when it's switched on, which broke clicking a list open.
-        /// </summary>
-        public bool CompleteTyping { get; set; }
-        bool _deleting;
+        /// <summary>Selects the item whose text is <paramref name="text"/>, or shows the text as an extra item.</summary>
+        public void SetValue(string text)
+        {
+            text = text ?? "";
+            for (int i = Items.Count - 1; i >= 0; i--)
+                if (Items[i] is CustomItem) Items.RemoveAt(i);
+            for (int i = 0; i < Items.Count; i++)
+            {
+                if (Items[i] is OtherItem || GetItemText(Items[i]) != text) continue;
+                SelectedIndex = i;
+                return;
+            }
+            if (text.Length == 0)
+            {
+                SelectedIndex = -1;
+                return;
+            }
+            Items.Insert(0, new CustomItem { Text = text });
+            SelectedIndex = 0;
+        }
 
-        int FieldHeight => Font.Height + (int)Theme.Px(this, 14);
+        /// <summary>The value shown through <see cref="SetValue"/> when it isn't an item, else "".</summary>
+        public string Custom => Items.Count > 0 && Items[0] is CustomItem c ? c.Text : "";
+
+        int FieldHeight => Font.Height + (int)Theme.Px(this, 18);
         int TextInset => (int)Theme.Px(this, 14);
-        int ChevronWidth => (int)Theme.Px(this, 36);
+        int ChevronWidth => (int)Theme.Px(this, 40);
 
         protected override void OnFontChanged(EventArgs e)
         {
             base.OnFontChanged(e);
-            if (!IsHandleCreated) return;
-            ItemHeight = FieldHeight;
-            PlaceEditBox();
+            if (IsHandleCreated) ItemHeight = FieldHeight;
         }
 
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
             ItemHeight = FieldHeight;
-            PlaceEditBox();
-        }
-
-        protected override void OnKeyDown(KeyEventArgs e)
-        {
-            _deleting = e.KeyCode == Keys.Back || e.KeyCode == Keys.Delete;
-            base.OnKeyDown(e);
-        }
-
-        protected override void OnTextUpdate(EventArgs e)
-        {
-            base.OnTextUpdate(e);
-            var typed = Text;
-            if (!CompleteTyping || _deleting || DropDownStyle != ComboBoxStyle.DropDown || typed.Length == 0 || SelectionStart != typed.Length) return;
-            foreach (var item in Items)
-            {
-                var text = GetItemText(item);
-                if (text.Length <= typed.Length || !text.StartsWith(typed, StringComparison.CurrentCultureIgnoreCase)) continue;
-                Text = typed + text.Substring(typed.Length);
-                Select(typed.Length, text.Length - typed.Length);
-                return;
-            }
-        }
-
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-            PlaceEditBox();
         }
 
         protected override void OnEnter(EventArgs e) { Invalidate(); base.OnEnter(e); }
         protected override void OnLeave(EventArgs e) { Invalidate(); base.OnLeave(e); }
-        protected override void OnDropDownClosed(EventArgs e) { Invalidate(); base.OnDropDownClosed(e); }
         protected override void OnSelectedIndexChanged(EventArgs e) { Invalidate(); base.OnSelectedIndexChanged(e); }
+        protected override void OnForeColorChanged(EventArgs e) { Invalidate(); base.OnForeColorChanged(e); }
+
+        protected override void OnDropDownClosed(EventArgs e)
+        {
+            Invalidate();
+            base.OnDropDownClosed(e);
+        }
 
         protected override void OnDropDown(EventArgs e)
         {
+            // At most half the screen tall (Windows would otherwise use most of a TV's height).
+            int half = Screen.FromControl(this).WorkingArea.Height / 2;
+            DropDownHeight = Math.Max(ItemHeight + 2, Math.Min(Items.Count * ItemHeight + 2, half));
             Invalidate();
             if (!_listThemed && Info(out var info))
             {
@@ -554,21 +568,15 @@ namespace MagicRemote.Ui
             base.OnDropDown(e);
         }
 
-        /// <summary>Moves the edit box in from the rounded border and centres it vertically.</summary>
-        void PlaceEditBox()
-        {
-            if (DropDownStyle != ComboBoxStyle.DropDown || !IsHandleCreated || !Info(out var info) || info.hwndItem == IntPtr.Zero) return;
-            int height = Font.Height + 2;
-            SetWindowPos(info.hwndItem, IntPtr.Zero, TextInset, (Height - height) / 2, Math.Max(0, Width - TextInset - ChevronWidth), height, 0x0014 /* NOZORDER | NOACTIVATE */);
-        }
-
         protected override void OnDrawItem(DrawItemEventArgs e)
         {
             if (e.Index < 0) return;
             bool hot = (e.State & DrawItemState.Selected) != 0 && (e.State & DrawItemState.ComboBoxEdit) == 0;
             using (var brush = new SolidBrush(hot ? Theme.SurfaceHover : Theme.Field)) e.Graphics.FillRectangle(brush, e.Bounds);
+            var item = Items[e.Index];
+            var color = item is OtherItem ? Theme.Accent : e.Index == SelectedIndex ? Theme.Accent : Theme.Text;
             var text = new Rectangle(e.Bounds.X + TextInset, e.Bounds.Y, e.Bounds.Width - TextInset, e.Bounds.Height);
-            TextRenderer.DrawText(e.Graphics, GetItemText(Items[e.Index]), Font, text, e.Index == SelectedIndex ? Theme.Accent : Theme.Text,
+            TextRenderer.DrawText(e.Graphics, GetItemText(item), item is OtherItem ? Theme.Strong : Font, text, color,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
 
@@ -579,7 +587,7 @@ namespace MagicRemote.Ui
                 base.WndProc(ref m);
                 return;
             }
-            // The field is all ours: border, background, chevron and, without an edit box, the chosen item.
+            // The closed field is all ours: border, background, chosen item and chevron.
             var ps = new PAINTSTRUCT();
             var hdc = BeginPaint(Handle, ref ps);
             try
@@ -600,21 +608,21 @@ namespace MagicRemote.Ui
         {
             g.Clear(Theme.Behind(this));
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            bool active = ContainsFocus || DroppedDown;
+            // Teal only while the list is open; a quiet border when it has the keyboard focus.
+            var border = DroppedDown ? Theme.Accent : ContainsFocus ? Theme.Muted : Theme.Border;
             using (var path = Theme.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Theme.Px(this, 10)))
             {
                 using (var brush = new SolidBrush(Theme.Field)) g.FillPath(brush, path);
-                using (var pen = new Pen(active ? Theme.Accent : Theme.Border, active ? Math.Max(1f, Theme.Px(this, 1.5f)) : 1f)) g.DrawPath(pen, path);
+                using (var pen = new Pen(border, DroppedDown ? Math.Max(1f, Theme.Px(this, 1.5f)) : 1f)) g.DrawPath(pen, path);
             }
 
-            float s = Theme.Px(this, 5), cx = Width - ChevronWidth / 2f, cy = Height / 2f;
+            float s = Theme.Px(this, 6), cx = Width - ChevronWidth / 2f, cy = Height / 2f;
             float tip = DroppedDown ? -s / 2 : s / 2;
-            using (var pen = new Pen(Enabled ? Theme.Muted : Theme.Border, Math.Max(1f, Theme.Px(this, 1.6f))) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            using (var pen = new Pen(Enabled ? Theme.Text : Theme.Border, Math.Max(1.5f, Theme.Px(this, 2f))) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
                 g.DrawLines(pen, new[] { new PointF(cx - s, cy - tip), new PointF(cx, cy + tip), new PointF(cx + s, cy - tip) });
 
-            if (DropDownStyle == ComboBoxStyle.DropDownList)
-                TextRenderer.DrawText(g, Text, Font, new Rectangle(TextInset, 0, Width - TextInset - ChevronWidth, Height), Enabled ? Theme.Text : Theme.Muted,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            TextRenderer.DrawText(g, Text, Font, new Rectangle(TextInset, 0, Width - TextInset - ChevronWidth, Height), Enabled ? ForeColor : Theme.Muted,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
 
         bool Info(out COMBOBOXINFO info)
@@ -647,7 +655,97 @@ namespace MagicRemote.Ui
         [DllImport("user32.dll")] static extern bool GetComboBoxInfo(IntPtr hwnd, ref COMBOBOXINFO info);
         [DllImport("user32.dll")] static extern IntPtr BeginPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
         [DllImport("user32.dll")] static extern bool EndPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
-        [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hwnd, string app, string idList);
+    }
+
+    /// <summary>
+    /// A <see cref="Combo"/> whose last item ("Other keys…", "Type an IP address…") swaps it for a text box
+    /// in the same place. Enter or leaving the box keeps the text; Esc goes back to the list.
+    /// </summary>
+    class Picker : Panel
+    {
+        public readonly Combo List = new Combo { Dock = DockStyle.Fill, Margin = new Padding(0) };
+        readonly FieldBox _typing = new FieldBox(100) { Dock = DockStyle.Fill, Visible = false, Margin = new Padding(0) };
+        readonly Combo.OtherItem _other;
+
+        /// <summary>Raised with the chosen item's text, or the typed text.</summary>
+        public event Action<string> Chosen;
+
+        public Picker(int width, string otherLabel)
+        {
+            Width = width;
+            Margin = new Padding(0, 3, 8, 3);
+            _other = new Combo.OtherItem { Label = otherLabel };
+            Controls.Add(_typing);
+            Controls.Add(List);
+            List.Items.Add(_other);
+            Height = List.Height;
+            List.SizeChanged += (s, e) => Height = List.Height; // follows the font, e.g. on a screen with other scaling
+            List.SelectionChangeCommitted += (s, e) =>
+            {
+                if (List.SelectedItem == _other) StartTyping();
+                else Chosen?.Invoke(List.Text);
+            };
+            List.SelectedIndexChanged += (s, e) => { if (List.SelectedItem != _other) _shown = List.Text; };
+            _typing.Box.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode != Keys.Enter && e.KeyCode != Keys.Escape) return;
+                e.SuppressKeyPress = true;
+                StopTyping(e.KeyCode == Keys.Enter);
+            };
+            _typing.Box.Leave += (s, e) => StopTyping(true);
+        }
+
+        /// <summary>The value shown: an item's text, typed text, or "".</summary>
+        public string Value
+        {
+            get => List.SelectedItem == _other ? "" : List.Text;
+            set => List.SetValue(value);
+        }
+
+        /// <summary>Puts <paramref name="items"/> in the list, before the "Other…" item, keeping the value.</summary>
+        public void SetItems(IEnumerable<object> items)
+        {
+            var value = Value;
+            List.BeginUpdate();
+            List.Items.Clear();
+            foreach (var item in items) List.Items.Add(item);
+            List.Items.Add(_other);
+            List.EndUpdate();
+            Value = value;
+        }
+
+        public void ShowError(bool error) => List.ForeColor = error ? Theme.Danger : Theme.Text;
+
+        string _before, _shown = "";
+
+        void StartTyping()
+        {
+            _before = _shown;
+            _typing.Box.Text = List.Custom;
+            _typing.Height = List.Height;
+            List.Visible = false;
+            _typing.Visible = true;
+            _typing.Box.Focus();
+            _typing.Box.SelectAll();
+        }
+
+        void StopTyping(bool keep)
+        {
+            if (!_typing.Visible) return;
+            var text = _typing.Box.Text.Trim();
+            _typing.Visible = false;
+            List.Visible = true;
+            if (keep && text.Length > 0)
+            {
+                List.SetValue(text);
+                Chosen?.Invoke(text);
+            }
+            else
+            {
+                List.SetValue(_before);
+            }
+        }
+
     }
 }

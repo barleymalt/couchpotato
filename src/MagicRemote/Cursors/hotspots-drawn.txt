@@ -15,7 +15,7 @@ neon up 128 16
 neon help 18 13
 neon location 18 13
 neon person 18 13
-arcane normal 29 22
+arcane normal 24 18
 arcane link 29 22
 arcane text 128 128
 arcane busy 128 128
@@ -28,6 +28,6 @@ arcane nwse 128 128
 arcane nesw 128 128
 arcane move 128 128
 arcane up 128 14
-arcane help 24 18
-arcane location 24 18
-arcane person 24 18
+arcane help 20 15
+arcane location 20 15
+arcane person 20 15

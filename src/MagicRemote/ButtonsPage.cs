@@ -16,7 +16,7 @@ namespace MagicRemote
     sealed class ButtonsPage : Panel
     {
         readonly ConfigStore _store;
-        readonly Dictionary<string, ComboBox> _choices = new Dictionary<string, ComboBox>();
+        readonly Dictionary<string, Picker> _choices = new Dictionary<string, Picker>();
         readonly Dictionary<string, Label> _labels = new Dictionary<string, Label>();
         readonly Panel _scroll;
         readonly Label _status = Make.Text("", muted: true);
@@ -31,8 +31,8 @@ namespace MagicRemote
             _scroll.Dock = DockStyle.Fill;
             Controls.Add(_scroll);
 
-            column.Add(Make.Instructions("Choose what each remote button does on the PC. Pick from the list, or type keys joined with + " +
-                                         "(for example ctrl+shift+esc, win+r or f5). Press a button on the remote to find it here.", muted: true));
+            column.Add(Make.Instructions("Choose what each remote button does on the PC: pick an action, or pick Other keys and type keys " +
+                                         "joined with + (for example ctrl+shift+esc, win+r or f5). Press a button on the remote to find it here.", muted: true));
 
             var card = column.Add(new Card());
             var table = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0) };
@@ -53,23 +53,11 @@ namespace MagicRemote
                     Font = Theme.Strong,
                     Margin = new Padding(0, 8, 8, 8),
                 };
-                var choice = Make.Combo(260, editable: true);
-                choice.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-                choice.MaxDropDownItems = 16;
-                // Opening this page used to stall: every list was filled and given Windows autocomplete up front.
-                // Now a list gets its items only when it's used.
-                choice.DropDown += (s, e) => FillChoices(choice);
-                choice.Enter += (s, e) => FillChoices(choice);
-                ((Combo)choice).CompleteTyping = true;
+                // A plain list (a click anywhere opens it); "Other keys…" turns it into a box to type keys in.
+                var choice = new Picker(260, "Other keys…") { Anchor = AnchorStyles.Left | AnchorStyles.Right };
+                choice.SetItems(ActionNames);
                 var key = button.Key;
-                choice.SelectionChangeCommitted += (s, e) => Save(key, (string)choice.SelectedItem);
-                choice.Leave += (s, e) => Save(key, choice.Text);
-                choice.KeyDown += (s, e) =>
-                {
-                    if (e.KeyCode != Keys.Enter) return;
-                    e.SuppressKeyPress = true;
-                    Save(key, choice.Text);
-                };
+                choice.Chosen += text => Save(key, text);
                 table.Controls.Add(label);
                 table.Controls.Add(choice);
                 _labels[key] = label;
@@ -99,14 +87,6 @@ namespace MagicRemote
         }
 
         static readonly object[] ActionNames = ButtonCatalog.Actions.Select(a => (object)a.Key).ToArray();
-
-        static void FillChoices(ComboBox choice)
-        {
-            if (choice.Items.Count > 0) return;
-            var text = choice.Text; // adding items can replace a typed text that matches one
-            choice.Items.AddRange(ActionNames);
-            choice.Text = text;
-        }
 
         /// <summary>Scrolls to the row of a remote button the user just pressed, and lights it up.</summary>
         public void Highlight(ushort code)
@@ -144,13 +124,13 @@ namespace MagicRemote
             try
             {
                 _store.SetKeyBinding(key, binding);
-                choice.ForeColor = Theme.Text;
+                choice.ShowError(false);
                 ShowSaved(key);
                 Status(_labels[key].Text + ": " + ButtonCatalog.Describe(binding) + ". Saved.", Theme.Accent);
             }
             catch (FormatException e)
             {
-                choice.ForeColor = Theme.Danger;
+                choice.ShowError(true);
                 Status(e.Message + ". Use names like ctrl, alt, shift, win, enter, f5, a or volume-up, joined with +.", Theme.Danger);
             }
         }
@@ -161,8 +141,8 @@ namespace MagicRemote
             foreach (var kv in _choices)
             {
                 if (onlyKey != null && kv.Key != onlyKey) continue;
-                kv.Value.Text = ButtonCatalog.Describe(_store.GetKeyBinding(kv.Key));
-                kv.Value.ForeColor = Theme.Text;
+                kv.Value.Value = ButtonCatalog.Describe(_store.GetKeyBinding(kv.Key));
+                kv.Value.ShowError(false);
             }
         }
 

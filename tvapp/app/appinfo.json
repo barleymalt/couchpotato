@@ -1,6 +1,6 @@
 {
 	"id": "com.magicremote.tv",
-	"version": "1.4.2",
+	"version": "1.4.3",
 	"vendor": "MagicRemote",
 	"type": "web",
 	"main": "index.html",
