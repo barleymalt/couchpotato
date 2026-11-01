@@ -18,8 +18,7 @@ namespace MagicRemote.Input
             Pair("rewind", "Rewind"), Pair("fast-forward", "Fast forward"),
             Pair("channel-up", "Channel +"), Pair("channel-down", "Channel −"),
             Pair("info", "Info"),
-            Pair("1", "1"), Pair("2", "2"), Pair("3", "3"), Pair("4", "4"), Pair("5", "5"),
-            Pair("6", "6"), Pair("7", "7"), Pair("8", "8"), Pair("9", "9"), Pair("0", "0"),
+            // No number buttons: the TV keeps them for choosing a channel, so they never reach MagicRemote.
         };
 
         /// <summary>Label → binding text. Anything else can be typed as keys joined with "+".</summary>

@@ -499,8 +499,41 @@ namespace MagicRemote.Ui
             BackColor = Theme.Field;
             ForeColor = Theme.Text;
             Cursor = Theme.Hand;
+            // Off from the start: switching it off later (setting DropDownHeight does) recreates the window,
+            // which swallowed the first click on every list.
+            IntegralHeight = false;
             // No ItemHeight here: setting it creates the window there and then.
+            HandleDestroyed += (s, e) =>
+            {
+                _list.ReleaseHandle();
+                _listThemed = false;
+            };
         }
+
+        /// <summary>Watches the open list for the pointer leaving it, so the item under it stops looking hovered.</summary>
+        sealed class ListWatcher : NativeWindow
+        {
+            public bool Outside = true;
+
+            protected override void WndProc(ref Message m)
+            {
+                if (m.Msg == 0x0200 /* WM_MOUSEMOVE */)
+                {
+                    // The list captures the mouse while open, so moves outside it arrive here too.
+                    int x = (short)(m.LParam.ToInt64() & 0xFFFF), y = (short)((m.LParam.ToInt64() >> 16) & 0xFFFF);
+                    GetClientRect(Handle, out var r);
+                    bool outside = x < 0 || y < 0 || x >= r.Right || y >= r.Bottom;
+                    if (outside != Outside)
+                    {
+                        Outside = outside;
+                        InvalidateRect(Handle, IntPtr.Zero, false);
+                    }
+                }
+                base.WndProc(ref m);
+            }
+        }
+
+        readonly ListWatcher _list = new ListWatcher();
 
         /// <summary>Selects the item whose text is <paramref name="text"/>, or shows the text as an extra item.</summary>
         public void SetValue(string text)
@@ -563,15 +596,17 @@ namespace MagicRemote.Ui
             {
                 // Dark scrollbar in the list.
                 try { SetWindowTheme(info.hwndList, "DarkMode_Explorer", null); } catch (Exception) { }
+                _list.AssignHandle(info.hwndList);
                 _listThemed = true;
             }
+            _list.Outside = true; // nothing looks hovered until the pointer is over the list
             base.OnDropDown(e);
         }
 
         protected override void OnDrawItem(DrawItemEventArgs e)
         {
             if (e.Index < 0) return;
-            bool hot = (e.State & DrawItemState.Selected) != 0 && (e.State & DrawItemState.ComboBoxEdit) == 0;
+            bool hot = (e.State & DrawItemState.Selected) != 0 && (e.State & DrawItemState.ComboBoxEdit) == 0 && !_list.Outside;
             using (var brush = new SolidBrush(hot ? Theme.SurfaceHover : Theme.Field)) e.Graphics.FillRectangle(brush, e.Bounds);
             var item = Items[e.Index];
             var color = item is OtherItem ? Theme.Accent : e.Index == SelectedIndex ? Theme.Accent : Theme.Text;
@@ -580,8 +615,23 @@ namespace MagicRemote.Ui
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
 
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            _list.Outside = false; // moving through the list with the keyboard shows where you are
+            base.OnKeyDown(e);
+        }
+
         protected override void WndProc(ref Message m)
         {
+            if (m.Msg == 0x020A /* WM_MOUSEWHEEL */ && !DroppedDown)
+            {
+                // The wheel scrolls the page, never changes the choice under the pointer.
+                var page = Parent;
+                while (page != null && !(page is ScrollableControl sc && sc.AutoScroll)) page = page.Parent;
+                if (page != null) SendMessage(page.Handle, m.Msg, m.WParam, m.LParam);
+                m.Result = IntPtr.Zero;
+                return;
+            }
             if (m.Msg != WM_PAINT)
             {
                 base.WndProc(ref m);
@@ -653,6 +703,9 @@ namespace MagicRemote.Ui
         }
 
         [DllImport("user32.dll")] static extern bool GetComboBoxInfo(IntPtr hwnd, ref COMBOBOXINFO info);
+        [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+        [DllImport("user32.dll")] static extern bool InvalidateRect(IntPtr hwnd, IntPtr rect, bool erase);
+        [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")] static extern IntPtr BeginPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
         [DllImport("user32.dll")] static extern bool EndPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hwnd, string app, string idList);

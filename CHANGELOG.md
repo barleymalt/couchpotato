@@ -2,6 +2,12 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.7.4 (TV app 1.4.3: no need to reinstall it if you have 1.4.3)
+- The mouse wheel scrolls the page instead of changing a list it passes over.
+- Fixed: the first click on a list didn't open it.
+- An item in an open list only looks hovered while the pointer is on it.
+- The number buttons are gone from the Buttons tab: the TV keeps them for choosing a channel, so they never reach the PC.
+
 ## 1.7.3 (TV app 1.4.3: no need to reinstall it if you have 1.4.3)
 - Drop, Classic, Cartoon and Retro have all 17 pointers too: link hand, help, crosshair, pen, not allowed, the resize and move arrows, alternate select, location and person.
 
