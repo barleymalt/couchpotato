@@ -15,10 +15,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MagicRemote.Core\MagicRemote.Core.csproj" />
+    <!--
+      The core is compiled into the exe rather than referenced as MagicRemote.Core.dll: Windows would load an
+      old MagicRemote.Core.dll lying next to the exe (say, from copying a build folder) instead of the
+      embedded one, mixing versions. The tests still use the MagicRemote.Core project.
+    -->
+    <Compile Include="..\MagicRemote.Core\**\*.cs" Exclude="..\MagicRemote.Core\obj\**;..\MagicRemote.Core\bin\**" LinkBase="Core" />
+    <EmbeddedResource Include="..\..\tvapp\**\*" Exclude="..\..\tvapp\**\.DS_Store" LogicalName="tvapp/%(RecursiveDir)%(Filename)%(Extension)" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Security" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
     <EmbeddedResource Include="MagicRemote.ico" LogicalName="MagicRemote.ico" />
     <!-- Pointer styles, drawn by tools/make_cursors.py -->
     <EmbeddedResource Include="Cursors\*.png;Cursors\hotspots*.txt" LogicalName="Cursors/%(Filename)%(Extension)" />

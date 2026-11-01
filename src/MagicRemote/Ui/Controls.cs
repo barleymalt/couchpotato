@@ -510,10 +510,14 @@ namespace MagicRemote.Ui
             };
         }
 
-        /// <summary>Watches the open list for the pointer leaving it, so the item under it stops looking hovered.</summary>
+        /// <summary>
+        /// Watches the open list for which item is under the pointer, so exactly that one looks hovered.
+        /// Windows' own "selected" item lags behind (it stays on the last item until the pointer leaves).
+        /// </summary>
         sealed class ListWatcher : NativeWindow
         {
-            public bool Outside = true;
+            public int Hot = -1; // item under the pointer, -1 for none
+            public bool Keyboard; // moved with the arrow keys: show Windows' selected item instead
 
             protected override void WndProc(ref Message m)
             {
@@ -522,10 +526,16 @@ namespace MagicRemote.Ui
                     // The list captures the mouse while open, so moves outside it arrive here too.
                     int x = (short)(m.LParam.ToInt64() & 0xFFFF), y = (short)((m.LParam.ToInt64() >> 16) & 0xFFFF);
                     GetClientRect(Handle, out var r);
-                    bool outside = x < 0 || y < 0 || x >= r.Right || y >= r.Bottom;
-                    if (outside != Outside)
+                    int hot = -1;
+                    if (x >= 0 && y >= 0 && x < r.Right && y < r.Bottom)
                     {
-                        Outside = outside;
+                        long hit = SendMessage(Handle, 0x01A9 /* LB_ITEMFROMPOINT */, IntPtr.Zero, m.LParam).ToInt64();
+                        if (((hit >> 16) & 0xFFFF) == 0) hot = (int)(hit & 0xFFFF);
+                    }
+                    Keyboard = false;
+                    if (hot != Hot)
+                    {
+                        Hot = hot;
                         InvalidateRect(Handle, IntPtr.Zero, false);
                     }
                 }
@@ -599,14 +609,16 @@ namespace MagicRemote.Ui
                 _list.AssignHandle(info.hwndList);
                 _listThemed = true;
             }
-            _list.Outside = true; // nothing looks hovered until the pointer is over the list
+            _list.Hot = -1; // nothing looks hovered until the pointer is over an item
+            _list.Keyboard = false;
             base.OnDropDown(e);
         }
 
         protected override void OnDrawItem(DrawItemEventArgs e)
         {
             if (e.Index < 0) return;
-            bool hot = (e.State & DrawItemState.Selected) != 0 && (e.State & DrawItemState.ComboBoxEdit) == 0 && !_list.Outside;
+            bool inList = (e.State & DrawItemState.ComboBoxEdit) == 0;
+            bool hot = inList && (_list.Keyboard ? (e.State & DrawItemState.Selected) != 0 : e.Index == _list.Hot);
             using (var brush = new SolidBrush(hot ? Theme.SurfaceHover : Theme.Field)) e.Graphics.FillRectangle(brush, e.Bounds);
             var item = Items[e.Index];
             var color = item is OtherItem ? Theme.Accent : e.Index == SelectedIndex ? Theme.Accent : Theme.Text;
@@ -617,7 +629,7 @@ namespace MagicRemote.Ui
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            _list.Outside = false; // moving through the list with the keyboard shows where you are
+            _list.Keyboard = true; // moving through the list with the keyboard shows where you are
             base.OnKeyDown(e);
         }
 
