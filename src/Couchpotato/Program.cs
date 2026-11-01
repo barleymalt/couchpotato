@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
@@ -27,36 +26,43 @@ namespace Couchpotato
         public const string SupportUrl = "https://ko-fi.com/barleymalt";
         public const string SupportText = "Free and open source · Support it ♥";
 
-        static readonly Dictionary<string, Assembly> Loaded = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>The DLLs that ship next to Couchpotato.exe (listed at build time).</summary>
+        public static IEnumerable<string> Libraries()
+        {
+            using (var s = typeof(Program).Assembly.GetManifestResourceStream("app-files.txt"))
+            using (var reader = new StreamReader(s))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                    if (line.Trim().EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) yield return line.Trim();
+            }
+        }
 
         [STAThread]
         static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += ResolveEmbedded;
+            var folder = Path.GetDirectoryName(Application.ExecutablePath);
+            var missing = Libraries().Where(f => !File.Exists(Path.Combine(folder, f))).ToList();
+            if (missing.Count > 0)
+            {
+                // Typically: started from inside the zip, where Windows only unpacks the exe itself.
+                MessageBox.Show("Couchpotato needs the files that came with it in the zip (" + missing[0] + (missing.Count > 1 ? " and others" : "") + ").\n\n" +
+                                "Right-click the zip → Extract All, then run Couchpotato.exe from the extracted folder.",
+                                "Couchpotato", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            AppDomain.CurrentDomain.AssemblyResolve += ResolveBesideExe;
             Run(args);
         }
 
-        /// <summary>Loads DLLs embedded at build time, so Couchpotato.exe can be copied around on its own.</summary>
-        static Assembly ResolveEmbedded(object sender, ResolveEventArgs e)
+        /// <summary>A DLL of another version than the one asked for (the .config's redirects cover most): use the one shipped.</summary>
+        static Assembly ResolveBesideExe(object sender, ResolveEventArgs e)
         {
-            var name = new AssemblyName(e.Name).Name;
-            lock (Loaded)
-            {
-                if (Loaded.TryGetValue(name, out var cached)) return cached;
-                using (var s = typeof(Program).Assembly.GetManifestResourceStream("deps/" + name + ".dll"))
-                {
-                    if (s == null) return null;
-                    using (var gz = new GZipStream(s, CompressionMode.Decompress))
-                    using (var ms = new MemoryStream())
-                    {
-                        gz.CopyTo(ms);
-                        return Loaded[name] = Assembly.Load(ms.ToArray());
-                    }
-                }
-            }
+            var file = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), new AssemblyName(e.Name).Name + ".dll");
+            return File.Exists(file) ? Assembly.LoadFrom(file) : null;
         }
 
-        // Kept out of Main so no dependency is touched before the resolver is installed.
+        // Kept out of Main so no dependency is touched before the files are checked and the resolver is installed.
         [MethodImpl(MethodImplOptions.NoInlining)]
         static void Run(string[] args)
         {

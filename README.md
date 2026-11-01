@@ -4,7 +4,7 @@ Use the LG Magic Remote as the mouse and keyboard of a Windows PC connected to a
 
 A rewrite of [MagicRemoteService](https://github.com/Cathwyler/MagicRemoteService), focused on safety and on setup that just works. Why it was rewritten: [security review](docs/SECURITY-REVIEW.md) and [setup comparison](docs/UX-REVIEW.md). How it works: [docs/DESIGN.md](docs/DESIGN.md).
 
-- **One small exe.** It installs itself (no admin rights), or runs portable. No Node.js or LG command-line tools, no Windows service.
+- **One small download.** It installs itself (no admin rights), or runs portable. No Node.js or LG command-line tools, no Windows service.
 - **Paired and encrypted.** Only your TV can control your PC: every message is authenticated and encrypted with a key created during setup.
 - **Plug and play.** The PC finds the TV, installs the TV app itself, and works out its own IP, MAC address, the TV's HDMI input and which monitor is the TV.
 
@@ -14,20 +14,20 @@ Couchpotato is free and open source. If it's useful to you, you can [support it 
 
 ## Download
 
-Get `Couchpotato-<version>.exe` from the [latest release](../../releases/latest). It's one file: run it and it sets itself up.
+Get `Couchpotato-<version>.zip` from the [latest release](../../releases/latest). Right-click it → **Extract All**, then run `Couchpotato.exe` from the extracted folder: it sets itself up. (The libraries it needs sit next to it as plain files rather than packed inside the exe, which antivirus software finds less suspicious.)
 
 > **Windows or your antivirus may warn about it.** The exe isn't code-signed, and Couchpotato does things antivirus software watches closely: it moves the mouse and types for the remote, changes the pointer, and can start itself with administrator rights. So "Windows protected your PC" (click **More info → Run anyway**) or an antivirus warning is likely, especially for a new version. Each release lists the SHA-256 of its files, and the source is all here; you can [build it yourself](#build).
 
 ## Set up (once)
 
 1. **On the TV:** install **Developer Mode** from the LG Content Store, sign in with a free [LG developer account](https://webostv.developer.lge.com/), and turn on **Dev Mode Status**. The TV restarts. Open the app again and turn on **Key Server**.
-2. **On the PC:** run `Couchpotato.exe` and choose **Install** (just for you, no administrator rights; or **Just run it** to keep it portable). The setup window finds your TV.
+2. **On the PC:** run `Couchpotato.exe` from the extracted zip and choose **Install** (just for you, no administrator rights; or **Just run it** to keep it portable). The setup window finds your TV.
 3. Type the **passphrase** shown in the Developer Mode app and click **Install on TV**.
 4. **On the TV:** allow Couchpotato when asked, and confirm the HDMI input of the PC if asked.
 
 Then turn **Key Server** off again in the Developer Mode app. Couchpotato now starts with Windows, and switching the TV to the PC's input starts it on the TV by itself. If the old MagicRemoteService TV app is installed, setup removes it.
 
-**Updating:** run the new `Couchpotato.exe` and choose **Update**. If the changelog says the TV app changed, also run **Set up a TV** again (TV tab → **Install on TV**). It keeps the pairing, so the TV asks nothing. The version is in the window title and the tray menu; the PC tells you when the TV app is a different version. What changed: [CHANGELOG.md](CHANGELOG.md).
+**Updating:** extract the new zip, run its `Couchpotato.exe` and choose **Update**. If the changelog says the TV app changed, also run **Set up a TV** again (TV tab → **Install on TV**). It keeps the pairing, so the TV asks nothing. The version is in the window title and the tray menu; the PC tells you when the TV app is a different version. What changed: [CHANGELOG.md](CHANGELOG.md).
 
 If Windows asks whether Couchpotato may use the network, allow it on **private** networks.
 
@@ -117,7 +117,7 @@ Needs the [.NET SDK](https://dotnet.microsoft.com/download) 9 or newer, on Windo
 dotnet build src/Couchpotato -c Release
 ```
 
-The result is `src/Couchpotato/bin/Release/net48/Couchpotato.exe` (about 3 MB, dependencies embedded).
+The result is in `src/Couchpotato/bin/Release/net48`: `Couchpotato.exe`, its `.config` and the DLLs it needs, which have to stay together. `tools/release.sh` packs them into the release zip.
 
 ```bash
 dotnet run --project tests/Couchpotato.Tests    # needs Node.js, and port 3000 free for the TV service test

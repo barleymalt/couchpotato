@@ -11,7 +11,7 @@ using Microsoft.Win32;
 namespace Couchpotato.Win32
 {
     /// <summary>
-    /// Couchpotato.exe installs itself, per user and without administrator rights:
+    /// Couchpotato installs itself (the exe and the files next to it), per user and without administrator rights:
     /// %LOCALAPPDATA%\Programs\Couchpotato, a Start menu entry, start with Windows, and an entry in
     /// Settings → Apps whose Uninstall runs "Couchpotato.exe --uninstall".
     /// </summary>
@@ -61,8 +61,7 @@ namespace Couchpotato.Win32
         public static void Install()
         {
             StopOtherCopies();
-            Directory.CreateDirectory(InstallDir);
-            if (!SamePath(Application.ExecutablePath, InstalledExe)) File.Copy(Application.ExecutablePath, InstalledExe, true);
+            CopyAppTo(InstallDir);
 
             CreateShortcut(Shortcut, InstalledExe);
             using (var key = Registry.CurrentUser.CreateSubKey(UninstallKey))
@@ -74,12 +73,27 @@ namespace Couchpotato.Win32
                 key.SetValue("InstallLocation", InstallDir);
                 key.SetValue("UninstallString", "\"" + InstalledExe + "\" " + UninstallArgument);
                 key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
-                key.SetValue("EstimatedSize", (int)(new FileInfo(InstalledExe).Length / 1024), RegistryValueKind.DWord);
+                key.SetValue("EstimatedSize", (int)(Directory.GetFiles(InstallDir).Sum(f => new FileInfo(f).Length) / 1024), RegistryValueKind.DWord);
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
             }
             Autostart.Set(true, InstalledExe);
             Log.Info("Installed " + Program.Version + " into " + InstallDir);
+        }
+
+        /// <summary>
+        /// Copies this exe (as Couchpotato.exe, whatever it's called here), its .config and its DLLs into a
+        /// folder; nothing when it already runs from there.
+        /// </summary>
+        public static void CopyAppTo(string folder)
+        {
+            var exe = Application.ExecutablePath;
+            var from = Path.GetDirectoryName(exe);
+            Directory.CreateDirectory(folder);
+            if (SamePath(from, folder)) return;
+            File.Copy(exe, Path.Combine(folder, "Couchpotato.exe"), true);
+            if (File.Exists(exe + ".config")) File.Copy(exe + ".config", Path.Combine(folder, "Couchpotato.exe.config"), true);
+            foreach (var dll in Program.Libraries()) File.Copy(Path.Combine(from, dll), Path.Combine(folder, dll), true);
         }
 
         public static void StartInstalled(string arguments = "") =>

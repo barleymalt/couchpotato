@@ -35,38 +35,19 @@
     <EmbeddedResource Include="Fonts\*.ttf;Fonts\OFL.txt" LogicalName="Fonts/%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <!-- Embed every referenced DLL, gzipped, so Couchpotato.exe works as a single small file (see Program.ResolveEmbedded). -->
-  <UsingTask TaskName="GzipFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-      <OutputDir ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Using Namespace="System.IO.Compression" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        Directory.CreateDirectory(OutputDir);
-        foreach (var f in Files)
-        {
-            var target = Path.Combine(OutputDir, Path.GetFileName(f.ItemSpec) + ".gz");
-            using (var input = File.OpenRead(f.ItemSpec))
-            using (var output = File.Create(target))
-            using (var gz = new GZipStream(output, CompressionLevel.Optimal))
-                input.CopyTo(gz);
-        }
-      ]]></Code>
-    </Task>
-  </UsingTask>
-
-  <Target Name="EmbedDependencies" AfterTargets="ResolveAssemblyReferences">
+  <!--
+    The DLLs ship as plain files next to Couchpotato.exe (in the release zip), not packed inside it: an exe
+    that unpacks libraries in memory looks like malware to antivirus software. The list of files the app
+    needs goes inside the exe, so it can install them and tell when they're missing (run from inside the zip).
+  -->
+  <Target Name="ListAppFiles" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>
-      <DependencyDll Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' And '%(ReferenceCopyLocalPaths.DestinationSubDirectory)' == ''" />
+      <AppFile Include="@(ReferenceCopyLocalPaths->'%(Filename)%(Extension)')" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' And '%(ReferenceCopyLocalPaths.DestinationSubDirectory)' == ''" />
+      <AppFile Include="$(AssemblyName).exe.config" />
     </ItemGroup>
-    <GzipFiles Files="@(DependencyDll)" OutputDir="$(IntermediateOutputPath)deps" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)app-files.txt" Lines="@(AppFile)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup>
-      <EmbeddedResource Include="@(DependencyDll->'$(IntermediateOutputPath)deps\%(Filename)%(Extension).gz')">
-        <LogicalName>deps/%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)app-files.txt" LogicalName="app-files.txt" />
     </ItemGroup>
   </Target>
 

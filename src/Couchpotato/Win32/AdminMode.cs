@@ -106,13 +106,10 @@ namespace Couchpotato.Win32
                     try { p.Kill(); p.WaitForExit(5000); } catch (Exception) { }
                 }
 
-                Directory.CreateDirectory(Path.GetDirectoryName(InstalledPath));
-                if (!string.Equals(Path.GetFullPath(Application.ExecutablePath), Path.GetFullPath(InstalledPath), StringComparison.OrdinalIgnoreCase))
-                    File.Copy(Application.ExecutablePath, InstalledPath, true);
-                Log.Info("Administrator mode: copied to " + InstalledPath);
+                Installer.CopyAppTo(Path.GetDirectoryName(InstalledPath));
+                Log.Info("Administrator mode: copied to " + Path.GetDirectoryName(InstalledPath));
                 // Keep the normal install (Start menu entry) on the same version, or it would offer a "downgrade".
-                if (Installer.IsInstalled && !string.Equals(Path.GetFullPath(Application.ExecutablePath), Path.GetFullPath(Installer.InstalledExe), StringComparison.OrdinalIgnoreCase))
-                    File.Copy(Application.ExecutablePath, Installer.InstalledExe, true);
+                if (Installer.IsInstalled) Installer.CopyAppTo(Installer.InstallDir);
 
                 var xml = Path.Combine(Path.GetTempPath(), "Couchpotato-task.xml");
                 File.WriteAllText(xml, TaskXml(WindowsIdentity.GetCurrent().Name, InstalledPath), Encoding.Unicode);

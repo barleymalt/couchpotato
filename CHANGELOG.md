@@ -1,6 +1,10 @@
 # Changelog
 
-Updating: replace `Couchpotato.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
+Updating: extract the new zip, run its `Couchpotato.exe` and choose **Update**. When an entry below says the TV app changed, also open the **TV** tab → **Install on TV**; the pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating.
+
+## 2.0.1 (TV app 2.0.0: no need to reinstall it)
+- Couchpotato now comes as a zip: Couchpotato.exe with its libraries as plain files next to it, instead of packed inside the exe and unpacked in memory, which antivirus software (Microsoft Defender among them) took for malware. Extract the whole zip before running it; Couchpotato says so if you don't.
+- Installing, updating and administrator mode copy the libraries along with the exe.
 
 ## 2.0.0 (TV app 2.0.0: set up the TV again)
 - **MagicRemote is now Couchpotato**: free and open source under GPL-3.0, with an optional way to support it on Ko-fi (tray menu and TV tab).
