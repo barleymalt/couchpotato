@@ -1,8 +1,8 @@
-# Setup and everyday use: MagicRemoteService vs MagicRemote
+# Setup and everyday use: MagicRemoteService vs Couchpotato
 
 ## Where MagicRemoteService makes you work
 
-| Step | MagicRemoteService | MagicRemote |
+| Step | MagicRemoteService | Couchpotato |
 |---|---|---|
 | Prerequisites on the PC | Install Node.js and LG's webOS CLI globally (`ares-*` on PATH) | None: one 3 MB exe, no admin rights |
 | Adding the TV | Type its IP; "Key Server" note; advanced options (port, user, private key) | Found automatically on the network (SSDP); type the IP only if it isn't |

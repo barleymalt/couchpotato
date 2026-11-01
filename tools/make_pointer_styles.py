@@ -1,6 +1,6 @@
 """
 Draws the Neon (cyberpunk) and Arcane (dark fantasy) pointer styles: one 256x256 SVG per Windows pointer
-role, rendered to PNG into src/MagicRemote/Cursors, plus hotspots-drawn.txt and docs/pointer-styles-drawn.png.
+role, rendered to PNG into src/Couchpotato/Cursors, plus hotspots-drawn.txt and docs/pointer-styles-drawn.png.
 The app animates Busy (turning the spinner) and builds Working from Normal plus a small Busy.
 
 Usage: python3 tools/make_pointer_styles.py      (needs Pillow and resvg-py: pip install resvg-py)
@@ -13,7 +13,7 @@ import resvg_py
 from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-OUT = os.path.join(ROOT, "src", "MagicRemote", "Cursors")
+OUT = os.path.join(ROOT, "src", "Couchpotato", "Cursors")
 
 
 def pts(points):

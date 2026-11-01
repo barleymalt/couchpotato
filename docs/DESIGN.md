@@ -5,11 +5,11 @@
 ```
  Windows PC                                     LG webOS TV (Developer Mode)
 ┌──────────────────────────────┐               ┌──────────────────────────────────────┐
-│ MagicRemote.exe (per user)   │  WebSocket    │ com.magicremote.tv  (web app)        │
+│ Couchpotato.exe (per user)   │  WebSocket    │ com.couchpotato.tv  (web app)        │
 │  tray + setup window         │◀──────────────│  transparent overlay over HDMI input │
 │  AgentServer  :41234/tcp     │  encrypted    │  captures pointer, buttons, keys     │
 │  DiscoveryResponder :41234/udp◀─ broadcast ──│                                      │
-│  SendInput                   │               │ com.magicremote.tv.service (Node)    │
+│  SendInput                   │               │ com.couchpotato.tv.service (Node)    │
 │                              │  SSH :9922    │  watches foreground app (SSAP)       │
 │  DevModeInstaller ───────────┼──────────────▶│  opens/closes the overlay            │
 │  (setup only)                │               │  Wake-on-LAN, discovery broadcast    │
@@ -18,8 +18,8 @@
 
 | Path | What |
 |---|---|
-| `src/MagicRemote.Core` | Portable logic (netstandard2.0): protocol, crypto, WebSocket server, key map, config, `.ipk` builder, TV discovery, Developer Mode installer. Embeds `tvapp/`. |
-| `src/MagicRemote` | Windows glue (.NET Framework 4.8, preinstalled on Windows 10/11): tray, settings window (TV, Buttons, Pointer), `SendInput`, pointer styles, monitor detection, autostart, DPAPI. Builds into a single `MagicRemote.exe`. |
+| `src/Couchpotato.Core` | Portable logic (netstandard2.0): protocol, crypto, WebSocket server, key map, config, `.ipk` builder, TV discovery, Developer Mode installer. Embeds `tvapp/`. |
+| `src/Couchpotato` | Windows glue (.NET Framework 4.8, preinstalled on Windows 10/11): tray, settings window (TV, Buttons, Pointer), `SendInput`, pointer styles, monitor detection, autostart, DPAPI. Builds into a single `Couchpotato.exe`. |
 | `tools/make_cursors.py` | Draws the pointer styles (PNG) embedded in the exe. |
 | `tvapp/app` | The webOS app, ES5 so it runs on old webOS browsers. |
 | `tvapp/service` | The webOS JS service, ES5 for old Node versions. |
@@ -37,7 +37,7 @@ From then on: switching the TV to the PC's input → the service opens the overl
 
 Setting up the same TV again (to update its app) keeps the pairing. Setup also removes old MagicRemoteService apps (`com.cathwyler.magicremoteservice*`) through the same `appInstallService/dev/remove` call `ares-install --remove` uses.
 
-**Administrator mode (optional).** Windows' integrity levels stop a normal process from sending input to elevated windows. When the user opts in, an elevated helper (`MagicRemote.exe --admin-install`, one UAC prompt) copies the exe to Program Files and registers a Task Scheduler task that starts it at sign-in with highest privileges. Program Files matters: a task that elevates an exe in Downloads would let any program become administrator by replacing the file. In this mode the server refuses peers on the PC itself, so local programs can't use it to reach elevated windows. Windows drops such input silently (SendInput still reports success), so the agent only reports a block when the cursor stopped following its moves and the foreground process has a higher integrity level, and names that app to the TV. The UAC prompt and lock screen remain out of reach (SYSTEM only).
+**Administrator mode (optional).** Windows' integrity levels stop a normal process from sending input to elevated windows. When the user opts in, an elevated helper (`Couchpotato.exe --admin-install`, one UAC prompt) copies the exe to Program Files and registers a Task Scheduler task that starts it at sign-in with highest privileges. Program Files matters: a task that elevates an exe in Downloads would let any program become administrator by replacing the file. In this mode the server refuses peers on the PC itself, so local programs can't use it to reach elevated windows. Windows drops such input silently (SendInput still reports success), so the agent only reports a block when the cursor stopped following its moves and the foreground process has a higher integrity level, and names that app to the TV. The UAC prompt and lock screen remain out of reach (SYSTEM only).
 
 **Pointer styles.** While a TV is connected, the agent replaces the normal, link, text and busy pointers with `SetSystemCursor`, scaled to the TV's height. It restores them with `SystemParametersInfo(SPI_SETCURSORS)`, which reloads the user's own scheme. That happens on disconnect, on exit, and at the next start if the app was killed while a TV was connected (a marker file records that).
 
@@ -89,7 +89,7 @@ Protected against:
 
 Not protected against, by design or by platform limits:
 - **Someone who controls the TV.** Developer Mode gives SSH access to its owner. The pairing key lives in the app's storage on the TV.
-- **Other apps on the TV** can launch MagicRemote and call its background service (to open the overlay, send Wake-on-LAN, or change which input it watches). They can't read the pairing key. A pairing sent in launch parameters replaces an existing one only after the user picks "Replace" on the TV; the default is "Keep current".
+- **Other apps on the TV** can launch Couchpotato and call its background service (to open the overlay, send Wake-on-LAN, or change which input it watches). They can't read the pairing key. A pairing sent in launch parameters replaces an existing one only after the user picks "Replace" on the TV; the default is "Keep current".
 - **Someone who already runs code as you on the PC.** They don't need this app to control your session.
 - **The Developer Mode setup moment.** LG's Key Server serves the SSH key over plain HTTP, protected by a 6-character passphrase, and SSH host keys aren't pinned. Turn Key Server off after setup.
 - **No forward secrecy.** If the pairing key leaks, recorded past sessions can be decrypted. Re-pairing creates a new key.

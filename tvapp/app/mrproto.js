@@ -1,5 +1,5 @@
 /*
- * TV side of the MagicRemote protocol (see docs/DESIGN.md): mutual authentication with the
+ * TV side of the Couchpotato protocol (see docs/DESIGN.md): mutual authentication with the
  * pairing key, then encrypted and authenticated records in both directions.
  */
 (function (root, factory) {

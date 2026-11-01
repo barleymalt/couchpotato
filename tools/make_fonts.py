@@ -10,7 +10,7 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "src", "MagicRemote", "Fonts")
+OUT = os.path.join(os.path.dirname(__file__), "..", "src", "Couchpotato", "Fonts")
 LATIN = "U+0020-007E,U+00A0-017F,U+2010-2027,U+2030-203A,U+2190-2193,U+2212,U+20AC"
 
 # (file, weight, GDI family, GDI style, bold)
@@ -34,7 +34,7 @@ def make(source, file, weight, family, style, bold):
     name = font["name"]
     for nid in (16, 17, 21, 22, 25):
         name.removeNames(nameID=nid)
-    for nid, value in ((1, family), (2, style), (3, full + ";MagicRemote"), (4, full), (6, full.replace(" ", "-"))):
+    for nid, value in ((1, family), (2, style), (3, full + ";Couchpotato"), (4, full), (6, full.replace(" ", "-"))):
         name.setName(value, nid, 3, 1, 0x409)
         name.setName(value, nid, 1, 0, 0)
     if family != "Manrope":

@@ -71,7 +71,7 @@ Installing requires the TV's Developer Mode "Key Server". It serves the TV's SSH
 
 ## How the rewrite addresses them
 
-| Finding | In MagicRemote |
+| Finding | In Couchpotato |
 |---|---|
 | 1, 7 | Every TV is paired with its own random 256-bit key. Each connection runs a mutual HMAC-SHA256 challenge-response, then every message is encrypted (ChaCha20) and authenticated (HMAC-SHA256 with sequence numbers, so replay and tampering are rejected). The key reaches the TV only inside the SSH session used to install the app; it never crosses the network in the clear. |
 | 2 | Same as above: a web page has no key. Browser origins (`http://`, `https://`) are also refused before the handshake. |

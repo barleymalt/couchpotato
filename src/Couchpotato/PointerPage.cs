@@ -1,0 +1,106 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+using Couchpotato.Config;
+using Couchpotato.Ui;
+using Couchpotato.Win32;
+
+namespace Couchpotato
+{
+    /// <summary>Pick the pointer style and size used while the TV is connected, and add pointer packs.</summary>
+    sealed class PointerPage : Panel
+    {
+        readonly ConfigStore _store;
+        readonly Action _changed;
+        readonly Flow _tiles = new Flow { Margin = new Padding(0, 4, 0, 0) };
+        readonly List<PillButton> _sizes = new List<PillButton>();
+        string _style, _size;
+
+        public PointerPage(ConfigStore store, Action changed)
+        {
+            _store = store;
+            _changed = changed;
+            _style = PointerThemes.Normalize(store.Pointer);
+            _size = store.PointerSize;
+            BackColor = Theme.Background;
+
+            var page = Make.Page(out var column);
+            Controls.Add(page);
+            column.Add(Make.Instructions("The pointer on the PC while the TV is connected. Big pointers are easy to follow from the sofa; " +
+                                 "your usual pointer comes back as soon as the TV disconnects.", muted: true));
+
+            var styles = column.Add(new Card());
+            styles.Add(Make.Heading("Style"));
+            styles.Add(_tiles);
+            FillTiles();
+
+            var sizes = column.Add(new Card());
+            sizes.Add(Make.Heading("Size"));
+            var row = Make.Row();
+            foreach (var size in PointerThemes.Sizes)
+            {
+                var button = new PillButton(char.ToUpper(size.Key[0]) + size.Key.Substring(1), size.Key == _size ? PillKind.TabSelected : PillKind.Secondary) { Tag = size.Key };
+                button.Click += (s, e) =>
+                {
+                    _size = (string)button.Tag;
+                    foreach (var b in _sizes) b.Kind = b == button ? PillKind.TabSelected : PillKind.Secondary;
+                    Save();
+                };
+                _sizes.Add(button);
+                row.Controls.Add(button);
+            }
+            sizes.Add(row);
+
+            var packs = column.Add(new Card());
+            packs.Add(Make.Heading("Pointer packs"));
+            packs.Add(Make.Text("Windows pointer sets (.cur and .ani files, usually with an install.inf) work too: put each one in its own " +
+                                "folder inside the pointers folder, then look again. Packs made for small screens can look soft at the bigger sizes.",
+                                muted: true));
+            var open = new PillButton("Open the pointers folder");
+            open.Click += (s, e) =>
+            {
+                Directory.CreateDirectory(PointerThemes.PacksFolder);
+                AdminMode.OpenAsUser(PointerThemes.PacksFolder);
+            };
+            var reload = new PillButton("Look again", PillKind.Ghost);
+            reload.Click += (s, e) => FillTiles();
+            packs.Add(Make.Row(open, reload));
+        }
+
+        /// <summary>One tile per style: built in, the packs found, and Windows' own.</summary>
+        void FillTiles()
+        {
+            _tiles.SuspendLayout();
+            foreach (Control old in _tiles.Controls.Cast<Control>().ToList()) old.Dispose();
+            foreach (var style in PointerThemes.Styles)
+            {
+                var tile = new Tile(style.Value, PointerThemes.Preview(style.Key) ?? WindowsArrow()) { Selected = style.Key == _style, Tag = style.Key };
+                tile.Chosen += (s, e) =>
+                {
+                    _style = (string)tile.Tag;
+                    foreach (Tile t in _tiles.Controls) t.Selected = t == tile;
+                    Save();
+                };
+                (FindForm() as ChromeForm)?.Adopt(tile); // made after the window was scaled, when looking again
+                _tiles.Controls.Add(tile);
+            }
+            _tiles.ResumeLayout();
+        }
+
+        void Save()
+        {
+            _store.SetPointer(_style, _size);
+            _changed?.Invoke();
+        }
+
+        static Image WindowsArrow()
+        {
+            var image = new Bitmap(64, 64);
+            using (var g = Graphics.FromImage(image)) Cursors.Default.DrawStretched(g, new Rectangle(8, 8, 48, 48));
+            return image;
+        }
+    }
+}

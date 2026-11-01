@@ -1,0 +1,198 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+namespace Couchpotato.Ui
+{
+    /// <summary>The "living-room dark" look shared with the TV app: dark slate, teal accent, big type.</summary>
+    static class Theme
+    {
+        public static readonly Color Background = Color.FromArgb(0x14, 0x18, 0x1F);
+        public static readonly Color Surface = Color.FromArgb(0x1F, 0x26, 0x30);
+        public static readonly Color SurfaceHover = Color.FromArgb(0x2A, 0x33, 0x40);
+        public static readonly Color Field = Color.FromArgb(0x15, 0x1A, 0x21);
+        public static readonly Color Border = Color.FromArgb(0x36, 0x40, 0x4D);
+        public static readonly Color Text = Color.FromArgb(0xE8, 0xED, 0xF2);
+        public static readonly Color Muted = Color.FromArgb(0x9A, 0xA5, 0xB1);
+        public static readonly Color Accent = Color.FromArgb(0x52, 0xC4, 0xA0);
+        public static readonly Color AccentHover = Color.FromArgb(0x6E, 0xD4, 0xB4);
+        public static readonly Color OnAccent = Color.FromArgb(0x0B, 0x26, 0x1E);
+        public static readonly Color Danger = Color.FromArgb(0xF0, 0x7E, 0x7E);
+        public static readonly Color Warning = Color.FromArgb(0xF2, 0xC1, 0x4E);
+
+        public static readonly Color CloseHover = Color.FromArgb(0xC4, 0x2B, 0x1C);
+
+        // Manrope (SIL Open Font License, Fonts/OFL.txt) is embedded; Segoe UI if it can't be loaded.
+        static readonly PrivateFontCollection Embedded = new PrivateFontCollection();
+        static readonly FontFamily Regular = LoadFont("Manrope", "Segoe UI", "Manrope-Regular.ttf", "Manrope-Bold.ttf");
+        static readonly FontFamily SemiBold = LoadFont("Manrope SemiBold", "Segoe UI Semibold", "Manrope-SemiBold.ttf");
+
+        /// <summary>
+        /// The DPI the settings window is laid out for: that of the screen it's on (a 4K TV is often 288,
+        /// a laptop 120). Fonts and <see cref="Px"/> follow it. It starts at the main screen's.
+        /// </summary>
+        public static int Dpi = SystemDpi();
+
+        // Sizes in points at the current DPI: 11.25 pt is 15 px at 100 % scaling.
+        public static Font Body => At(Regular, 11.25f);
+        /// <summary>Instructions and page introductions: a step larger than the rest.</summary>
+        public static Font Instructions => At(Regular, 12f);
+        public static Font Small => At(Regular, 10.5f);
+        public static Font Strong => At(SemiBold, 11.25f);
+        public static Font Heading => At(Regular, 14.25f, FontStyle.Bold);
+        public static Font Title => At(Regular, 15.75f, FontStyle.Bold);
+
+        static readonly Dictionary<(string, float, FontStyle, int), Font> Fonts = new Dictionary<(string, float, FontStyle, int), Font>();
+        static readonly Dictionary<Font, (FontFamily Family, float Points, FontStyle Style)> Made = new Dictionary<Font, (FontFamily, float, FontStyle)>();
+
+        // In pixels, so the size doesn't depend on the DPI Windows reports to this process (the main screen's).
+        static Font At(FontFamily family, float points, FontStyle style = FontStyle.Regular)
+        {
+            var key = (family.Name, points, style, Dpi);
+            if (!Fonts.TryGetValue(key, out var font))
+            {
+                font = new Font(family, points * Dpi / 72f, style, GraphicsUnit.Pixel);
+                Fonts[key] = font;
+                Made[font] = (family, points, style);
+            }
+            return font;
+        }
+
+        /// <summary>Gives a control and everything in it the theme's fonts at the current DPI; other fonts stay.</summary>
+        public static void RefreshFonts(Control control)
+        {
+            if (Made.TryGetValue(control.Font, out var spec))
+            {
+                var font = At(spec.Family, spec.Points, spec.Style);
+                if (!ReferenceEquals(font, control.Font)) control.Font = font;
+            }
+            foreach (Control child in control.Controls) RefreshFonts(child);
+        }
+
+        static int SystemDpi()
+        {
+            using (var g = Graphics.FromHwnd(IntPtr.Zero)) return (int)Math.Round(g.DpiY);
+        }
+
+        /// <summary>
+        /// Loads embedded font files for both drawing paths: GDI+ (Font objects) through a private collection,
+        /// and GDI (TextRenderer, text boxes, lists) through AddFontMemResourceEx, which finds them by name.
+        /// </summary>
+        static FontFamily LoadFont(string family, string fallback, params string[] files)
+        {
+            try
+            {
+                foreach (var file in files)
+                {
+                    byte[] data;
+                    using (var s = typeof(Theme).Assembly.GetManifestResourceStream("Fonts/" + file))
+                    using (var m = new MemoryStream())
+                    {
+                        s.CopyTo(m);
+                        data = m.ToArray();
+                    }
+                    // Both keep using this memory for the life of the process, so it's never freed.
+                    var memory = Marshal.AllocCoTaskMem(data.Length);
+                    Marshal.Copy(data, 0, memory, data.Length);
+                    Embedded.AddMemoryFont(memory, data.Length);
+                    AddFontMemResourceEx(memory, (uint)data.Length, IntPtr.Zero, out _);
+                }
+                var loaded = Embedded.Families.FirstOrDefault(f => f.Name == family);
+                if (loaded != null) return loaded;
+            }
+            catch (Exception e)
+            {
+                Log.Warn("Can't load the " + family + " font: " + e.Message);
+            }
+            return new FontFamily(fallback);
+        }
+
+        /// <summary>Dark window: background, fonts, and a dark title bar on Windows 10 1809+ and 11.</summary>
+        public static void Apply(Form form)
+        {
+            form.BackColor = Background;
+            form.ForeColor = Text;
+            form.Font = Body;
+            form.HandleCreated += (s, e) =>
+            {
+                int on = 1;
+                // 20 = DWMWA_USE_IMMERSIVE_DARK_MODE (19 on Windows 10 before 20H1).
+                if (DwmSetWindowAttribute(form.Handle, 20, ref on, 4) != 0) DwmSetWindowAttribute(form.Handle, 19, ref on, 4);
+            };
+        }
+
+        /// <summary>Dark scrollbars for a scrolling panel (ignored on old Windows).</summary>
+        public static void DarkScrollbars(Control control)
+        {
+            control.HandleCreated += (s, e) =>
+            {
+                try { SetWindowTheme(control.Handle, "DarkMode_Explorer", null); } catch (Exception) { }
+            };
+        }
+
+        public static GraphicsPath Rounded(RectangleF r, float radius)
+        {
+            var path = new GraphicsPath();
+            float d = Math.Min(radius * 2, Math.Min(r.Width, r.Height));
+            if (d <= 0)
+            {
+                path.AddRectangle(r);
+                return path;
+            }
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        /// <summary>
+        /// Windows' own hand pointer. WinForms' Cursors.Hand is a picture of its own, so it wouldn't change
+        /// to the TV pointer style's hand like every other app's links do.
+        /// </summary>
+        public static readonly Cursor Hand = SystemHand();
+
+        static Cursor SystemHand()
+        {
+            var handle = LoadCursor(IntPtr.Zero, (IntPtr)32649 /* IDC_HAND */);
+            return handle == IntPtr.Zero ? Cursors.Hand : new Cursor(handle);
+        }
+
+        /// <summary>Scales a 96-DPI length to the current <see cref="Dpi"/>.</summary>
+        public static float Px(Control c, float value) => value * Dpi / 96f;
+
+        /// <summary>The colour behind a control, for painting its rounded corners.</summary>
+        public static Color Behind(Control c) => c.Parent?.BackColor ?? Background;
+
+        [DllImport("user32.dll")] static extern IntPtr LoadCursor(IntPtr instance, IntPtr name);
+        [DllImport("gdi32.dll")] static extern IntPtr AddFontMemResourceEx(IntPtr font, uint length, IntPtr reserved, out uint count);
+        [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hwnd, string app, string idList);
+    }
+
+    /// <summary>Dark colours for the tray menu.</summary>
+    sealed class DarkMenuColors : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground => Theme.Surface;
+        public override Color MenuBorder => Theme.Border;
+        public override Color MenuItemBorder => Theme.SurfaceHover;
+        public override Color MenuItemSelected => Theme.SurfaceHover;
+        public override Color MenuItemSelectedGradientBegin => Theme.SurfaceHover;
+        public override Color MenuItemSelectedGradientEnd => Theme.SurfaceHover;
+        public override Color ImageMarginGradientBegin => Theme.Surface;
+        public override Color ImageMarginGradientMiddle => Theme.Surface;
+        public override Color ImageMarginGradientEnd => Theme.Surface;
+        public override Color SeparatorDark => Theme.Border;
+        public override Color SeparatorLight => Theme.Surface;
+        public override Color CheckBackground => Theme.SurfaceHover;
+        public override Color CheckSelectedBackground => Theme.SurfaceHover;
+        public override Color CheckPressedBackground => Theme.SurfaceHover;
+    }
+}

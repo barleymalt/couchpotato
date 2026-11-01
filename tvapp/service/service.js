@@ -1,5 +1,5 @@
 /*
- * MagicRemote background service (webOS JS service, ES5 for old Node versions).
+ * Couchpotato background service (webOS JS service, ES5 for old Node versions).
  *  - watches which app is in the foreground and opens the overlay on the PC's HDMI input
  *  - sends Wake-on-LAN packets and finds the PC by UDP broadcast
  * It never sees the pairing key: that stays in the app.
@@ -14,7 +14,7 @@ var http = require("http");
 var https = require("https");
 var crypto = require("crypto");
 
-var APP_ID = "com.magicremote.tv";
+var APP_ID = "com.couchpotato.tv";
 var SERVICE_ID = APP_ID + ".service";
 var SETTINGS_FILE = path.join(__dirname, "settings.json");
 
@@ -230,7 +230,7 @@ function startWatcher() {
 		}
 		var client = new WebSocketClient(socket, onSsapMessage, retryWatcher);
 		ssap = client;
-		client.send({ type: "hello", id: "hello", payload: { appId: APP_ID, appName: "MagicRemote", deviceType: "tv", deviceOS: "webOS" } });
+		client.send({ type: "hello", id: "hello", payload: { appId: APP_ID, appName: "Couchpotato", deviceType: "tv", deviceOS: "webOS" } });
 		// Some firmware may not answer "hello"; register anyway.
 		setTimeout(function () { register(client); }, 2000);
 	});
@@ -393,7 +393,7 @@ function scheduleActivity(name, type, schedule, method) {
 		service.call("luna://com.palm.activitymanager/create", {
 			activity: {
 				name: name,
-				description: "MagicRemote " + method,
+				description: "Couchpotato " + method,
 				type: type,
 				schedule: schedule,
 				callback: { method: "luna://" + SERVICE_ID + "/" + method }
@@ -428,9 +428,9 @@ function scheduleActivity(name, type, schedule, method) {
 	return create;
 }
 
-service.activityManager.create("MagicRemoteKeepAlive");
+service.activityManager.create("CouchpotatoKeepAlive");
 
-var recreateHeartbeat = scheduleActivity("MagicRemoteHeartbeat",
+var recreateHeartbeat = scheduleActivity("CouchpotatoHeartbeat",
 	{ foreground: true, persist: true, explicit: true },
 	{ precise: true, interval: "00d00h00m05s" },
 	"heartbeat");
@@ -442,7 +442,7 @@ service.register("heartbeat", function (message) {
 });
 
 /* Developer Mode sessions expire; asking the Developer Mode app to extend keeps this app installed. */
-var recreateExtend = scheduleActivity("MagicRemoteExtendDevMode",
+var recreateExtend = scheduleActivity("CouchpotatoExtendDevMode",
 	{ background: true, persist: true, explicit: true },
 	{ interval: "28d00h00m00s" },
 	"extend");

@@ -16,7 +16,7 @@ const os = require("os");
 const path = require("path");
 const EventEmitter = require("events");
 
-const APP_ID = "com.magicremote.tv";
+const APP_ID = "com.couchpotato.tv";
 const [agentPort, agentPcId] = process.argv.slice(2);
 
 // ---------- fake webos-service ----------

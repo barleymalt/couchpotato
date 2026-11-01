@@ -1,4 +1,4 @@
-"""Draws the MagicRemote logo (teal tile, dark remote) into the PC .ico, the TV app icons and docs/icon.png.
+"""Draws the Couchpotato logo (teal tile, dark remote) into the PC .ico, the TV app icons and docs/icon.png.
 
 Usage: python3 tools/make_icon.py
 """
@@ -27,7 +27,7 @@ def logo(size):
 def main():
     sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
     images = [logo(s) for s in sizes]
-    images[-1].save(os.path.join(ROOT, "src", "MagicRemote", "MagicRemote.ico"), sizes=[(s, s) for s in sizes], append_images=images[:-1])
+    images[-1].save(os.path.join(ROOT, "src", "Couchpotato", "Couchpotato.ico"), sizes=[(s, s) for s in sizes], append_images=images[:-1])
     logo(80).save(os.path.join(ROOT, "tvapp", "app", "icon.png"))
     logo(130).save(os.path.join(ROOT, "tvapp", "app", "largeIcon.png"))
     logo(256).save(os.path.join(ROOT, "docs", "icon.png"))

@@ -1,11 +1,11 @@
 /*
- * MagicRemote TV app. Runs as a transparent window on top of the PC's HDMI input, forwards the
+ * Couchpotato TV app. Runs as a transparent window on top of the PC's HDMI input, forwards the
  * Magic Remote to the PC, and gets out of the way when the user switches to anything else.
  */
 (function () {
 	"use strict";
 
-	var APP_ID = "com.magicremote.tv";
+	var APP_ID = "com.couchpotato.tv";
 	var SERVICE = "luna://" + APP_ID + ".service/";
 	var LONG_PRESS_MS = 600;
 	var DRAG_THRESHOLD_PX = 12;
@@ -14,7 +14,7 @@
 	var HANDSHAKE_TIMEOUT_MS = 4000;
 	var WAKE_AFTER_MS = 2500;
 	var GIVE_UP_MS = 120000; // a PC cold-booting after Wake-on-LAN can take a while
-	var BACK_HOLD_MS = 1000; // holding Back leaves MagicRemote and gives the remote back to the TV
+	var BACK_HOLD_MS = 1000; // holding Back leaves Couchpotato and gives the remote back to the TV
 	var BACK = 461;
 	var CURSOR_KEYS = { 1536: true, 1537: true }; // pointer shown/hidden notifications on old webOS
 
@@ -78,7 +78,7 @@
 				appVersion = String(JSON.parse(xhr.responseText).version || "");
 			} catch (e) { /* stays unknown */ }
 			if (connected && appVersion) send(M.info(appVersion));
-			if (dialogEl && dialogEl.isHome) dialogEl.querySelector("h1").textContent = "MagicRemote " + appVersion;
+			if (dialogEl && dialogEl.isHome) dialogEl.querySelector("h1").textContent = "Couchpotato " + appVersion;
 		};
 		xhr.open("GET", appRoot + "appinfo.json", true);
 		xhr.send(null);
@@ -360,7 +360,7 @@
 		if (refused && ++refusals >= 3) {
 			toast("");
 			dialog(pairing.pcName + " doesn't recognise this TV",
-				"On the PC, open MagicRemote and choose \"Set up TV\" to pair again.",
+				"On the PC, open Couchpotato and choose \"Set up TV\" to pair again.",
 				[{ label: "Try again", action: retry }, { label: "Close", action: closeApp }], closeApp);
 			return;
 		}
@@ -373,7 +373,7 @@
 		if (now - failingSince > GIVE_UP_MS) {
 			toast("");
 			dialog("Can't reach " + pairing.pcName,
-				"Check that the PC is on and MagicRemote is running on it. To turn the PC on from the TV, enable Wake-on-LAN in its settings.",
+				"Check that the PC is on and Couchpotato is running on it. To turn the PC on from the TV, enable Wake-on-LAN in its settings.",
 				[{ label: "Try again", action: retry }, { label: "Close", action: closeApp }], closeApp);
 			return;
 		}
@@ -559,7 +559,7 @@
 			if (!backTimer) {
 				backTimer = setTimeout(function () {
 					backTimer = 0;
-					toast("Leaving MagicRemote. Switch to " + pairing.pcName + "'s input again to come back.", 3000);
+					toast("Leaving Couchpotato. Switch to " + pairing.pcName + "'s input again to come back.", 3000);
 					closeApp();
 				}, BACK_HOLD_MS);
 			}
@@ -636,11 +636,11 @@
 
 			if (active.length === 1 && !alwaysAsk) {
 				pick(active[0]);
-				toast("Using " + input.label + " for " + pairing.pcName + ". Open the MagicRemote app to change it.", 6000);
+				toast("Using " + input.label + " for " + pairing.pcName + ". Open the Couchpotato app to change it.", 6000);
 				return;
 			}
 			dialog("Which input is " + pairing.pcName + " connected to?",
-				"Inputs marked ● have a signal right now. MagicRemote will start by itself whenever you switch to the PC's input.",
+				"Inputs marked ● have a signal right now. Couchpotato will start by itself whenever you switch to the PC's input.",
 				devices.map(function (d) {
 					return { label: inputLabel(d) + (d.activate ? " ●" : ""), action: function () { pick(d); } };
 				}), closeApp);
@@ -667,7 +667,7 @@
 	function home() {
 		var paired = "Paired with " + pairing.pcName + " on " + input.label + ". ";
 		var hint = "Hold Back to leave it and use the TV.";
-		dialog("MagicRemote" + (appVersion ? " " + appVersion : ""), paired + hint, [
+		dialog("Couchpotato" + (appVersion ? " " + appVersion : ""), paired + hint, [
 			{ label: "Go to " + pairing.pcName, action: function () { startOverlay(true); } },
 			{ label: "Change input", action: function () { chooseInput(home, true); } },
 			{ label: "Close", action: closeApp }
@@ -680,7 +680,7 @@
 				? "It opens by itself when you switch to " + input.label + ". "
 				: s.watcher === "prompt"
 					? "To open by itself, it needs the permission the TV is asking for. "
-					: "It can't open by itself yet" + (s.detail ? " (" + s.detail + ")" : "") + ". Restart the TV and allow MagicRemote when asked. ";
+					: "It can't open by itself yet" + (s.detail ? " (" + s.detail + ")" : "") + ". Restart the TV and allow Couchpotato when asked. ";
 			shown.querySelector("p").textContent = paired + auto + hint;
 		});
 	}
@@ -718,8 +718,8 @@
 
 	function proceed(params) {
 		if (!pairing) {
-			dialog("MagicRemote isn't set up yet",
-				"On your PC, open MagicRemote and choose \"Set up TV\". It installs and pairs this app for you.",
+			dialog("Couchpotato isn't set up yet",
+				"On your PC, open Couchpotato and choose \"Set up TV\". It installs and pairs this app for you.",
 				[{ label: "Close", action: closeApp }], closeApp);
 			return;
 		}
@@ -751,7 +751,7 @@
 	});
 
 	window.addEventListener("error", function (e) {
-		toast("MagicRemote error: " + e.message, 8000);
+		toast("Couchpotato error: " + e.message, 8000);
 	});
 
 	launched(launchParams());

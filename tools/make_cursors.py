@@ -1,6 +1,6 @@
 """
 Draws the simple pointer styles (Drop, Classic, Cartoon, Retro) as 256x256 PNGs, one per Windows pointer
-role, into src/MagicRemote/Cursors, plus hotspots.txt and a preview sheet in docs/pointer-styles.png.
+role, into src/Couchpotato/Cursors, plus hotspots.txt and a preview sheet in docs/pointer-styles.png.
 Each style is a way of painting a shape ("paint"); the shapes are shared, so every style has every pointer.
 The app animates Busy and builds Working from Normal plus a small Busy.
 
@@ -12,7 +12,7 @@ import os
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-OUT = os.path.join(ROOT, "src", "MagicRemote", "Cursors")
+OUT = os.path.join(ROOT, "src", "Couchpotato", "Cursors")
 SIZE = 256
 SS = 4  # supersampling factor for smooth edges
 
