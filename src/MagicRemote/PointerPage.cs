@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using MagicRemote.Config;
@@ -9,12 +10,12 @@ using MagicRemote.Win32;
 
 namespace MagicRemote
 {
-    /// <summary>Pick the pointer style and size used while the TV is connected.</summary>
+    /// <summary>Pick the pointer style and size used while the TV is connected, and add pointer packs.</summary>
     sealed class PointerPage : Panel
     {
         readonly ConfigStore _store;
         readonly Action _changed;
-        readonly List<Tile> _tiles = new List<Tile>();
+        readonly Flow _tiles = new Flow { Margin = new Padding(0, 4, 0, 0) };
         readonly List<PillButton> _sizes = new List<PillButton>();
         string _style, _size;
 
@@ -22,7 +23,7 @@ namespace MagicRemote
         {
             _store = store;
             _changed = changed;
-            _style = store.Pointer;
+            _style = PointerThemes.Normalize(store.Pointer);
             _size = store.PointerSize;
             BackColor = Theme.Background;
 
@@ -33,20 +34,8 @@ namespace MagicRemote
 
             var styles = column.Add(new Card());
             styles.Add(Make.Heading("Style"));
-            var tiles = new Flow { Margin = new Padding(0, 4, 0, 0) };
-            foreach (var style in PointerThemes.Styles)
-            {
-                var tile = new Tile(style.Value, PointerThemes.Preview(style.Key) ?? WindowsArrow()) { Selected = style.Key == _style, Tag = style.Key };
-                tile.Chosen += (s, e) =>
-                {
-                    _style = (string)tile.Tag;
-                    foreach (var t in _tiles) t.Selected = t == tile;
-                    Save();
-                };
-                _tiles.Add(tile);
-                tiles.Controls.Add(tile);
-            }
-            styles.Add(tiles);
+            styles.Add(_tiles);
+            FillTiles();
 
             var sizes = column.Add(new Card());
             sizes.Add(Make.Heading("Size"));
@@ -64,6 +53,41 @@ namespace MagicRemote
                 row.Controls.Add(button);
             }
             sizes.Add(row);
+
+            var packs = column.Add(new Card());
+            packs.Add(Make.Heading("Pointer packs"));
+            packs.Add(Make.Text("Windows pointer sets (.cur and .ani files, usually with an install.inf) work too: put each one in its own " +
+                                "folder inside the pointers folder, then look again. Packs made for small screens can look soft at the bigger sizes.",
+                                muted: true));
+            var open = new PillButton("Open the pointers folder");
+            open.Click += (s, e) =>
+            {
+                Directory.CreateDirectory(PointerThemes.PacksFolder);
+                AdminMode.OpenAsUser(PointerThemes.PacksFolder);
+            };
+            var reload = new PillButton("Look again", PillKind.Ghost);
+            reload.Click += (s, e) => FillTiles();
+            packs.Add(Make.Row(open, reload));
+        }
+
+        /// <summary>One tile per style: built in, the packs found, and Windows' own.</summary>
+        void FillTiles()
+        {
+            _tiles.SuspendLayout();
+            foreach (Control old in _tiles.Controls.Cast<Control>().ToList()) old.Dispose();
+            foreach (var style in PointerThemes.Styles)
+            {
+                var tile = new Tile(style.Value, PointerThemes.Preview(style.Key) ?? WindowsArrow()) { Selected = style.Key == _style, Tag = style.Key };
+                tile.Chosen += (s, e) =>
+                {
+                    _style = (string)tile.Tag;
+                    foreach (Tile t in _tiles.Controls) t.Selected = t == tile;
+                    Save();
+                };
+                (FindForm() as ChromeForm)?.Adopt(tile); // made after the window was scaled, when looking again
+                _tiles.Controls.Add(tile);
+            }
+            _tiles.ResumeLayout();
         }
 
         void Save()

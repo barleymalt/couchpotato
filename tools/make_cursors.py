@@ -1,5 +1,5 @@
 """
-Draws the pointer styles as 256x256 PNGs (pointer, text, busy, working) into src/MagicRemote/Cursors,
+Draws the simple pointer styles as 256x256 PNGs (normal, text, busy) into src/MagicRemote/Cursors,
 plus hotspots.txt and a preview sheet in docs/pointer-styles.png.
 
 Usage: python3 tools/make_cursors.py      (needs Pillow)
@@ -233,8 +233,8 @@ def theme_retro():
     return pointer, (int(2 * cell), int(2 * cell)), text, (128, 128), busy, (128, 128)
 
 
-THEMES = [("drop", theme_drop), ("classic", theme_classic), ("cartoon", theme_cartoon),
-          ("fantasy", theme_fantasy), ("scifi", theme_scifi), ("retro", theme_retro)]
+# Fantasy and Sci-fi became the fully drawn Arcane and Neon (tools/make_pointer_styles.py).
+THEMES = [("drop", theme_drop), ("classic", theme_classic), ("cartoon", theme_cartoon), ("retro", theme_retro)]
 
 
 def main():
@@ -243,8 +243,8 @@ def main():
     sheet_rows = []
     for name, make in THEMES:
         pointer, p_hot, text, t_hot, busy, b_hot = make()
-        work = working(pointer, busy)
-        for shape, img, hot in (("pointer", pointer, p_hot), ("text", text, t_hot), ("busy", busy, b_hot), ("working", work, p_hot)):
+        work = working(pointer, busy)  # only for the preview sheet: the app builds Working itself
+        for shape, img, hot in (("normal", pointer, p_hot), ("text", text, t_hot), ("busy", busy, b_hot)):
             img.save(os.path.join(OUT, f"{name}-{shape}.png"), optimize=True)
             hotspots.append(f"{name} {shape} {hot[0]} {hot[1]}")
         sheet_rows.append((name, [pointer, text, busy, work]))

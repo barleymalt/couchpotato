@@ -2,6 +2,11 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.7.0 (TV app 1.4.2: no need to reinstall it)
+- New pointer styles **Neon** (cyberpunk) and **Arcane** (dark fantasy), replacing Sci-fi and Fantasy. They cover all 17 Windows pointers: links, text, resizing, moving, not allowed, help, pen and more.
+- Busy and Working in background are animated, in every built-in style.
+- Pointer packs: Windows pointer sets (.cur/.ani with an install.inf) in a folder inside the pointers folder show up as styles.
+
 ## 1.6.4 (TV app 1.4.2: no need to reinstall it)
 - Fixed: switching tabs flickered the old page for a moment before fading.
 - Fixed: opening a list on the Buttons page could fail with "Error creating window handle". Typing in a list still completes the action name.

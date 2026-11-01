@@ -54,9 +54,14 @@ The settings live in `%LOCALAPPDATA%\MagicRemote\config.json` (`"keys"` section)
 
 ### Pointer style
 
-Tray icon → **Pointer…**. While the TV is connected, the PC uses a big pointer that's easy to follow from the sofa; your usual pointer comes back when it disconnects. Styles: Drop (like the TV's own pointer), Classic, Cartoon, Fantasy, Sci-fi, Retro or Windows default, in four sizes.
+Tray icon → **Pointer…**. While the TV is connected, the PC uses a big pointer that's easy to follow from the sofa; your usual pointer comes back when it disconnects. Four sizes, and these styles:
 
-![Pointer styles](docs/pointer-styles.png)
+- **Neon** (cyberpunk) and **Arcane** (dark fantasy): all 17 Windows pointers (links, text, resizing, busy…), with an animated Busy and Working.
+- **Drop** (like the TV's own pointer), **Classic**, **Cartoon** and **Retro**: the main pointers, others stay Windows' own.
+- **Windows default**, or any **pointer pack**: a Windows pointer set (`.cur`/`.ani` files, usually with an `install.inf`) in its own folder inside `%LOCALAPPDATA%\MagicRemote\Pointers` (Pointer tab → **Open the pointers folder**). Packs made for normal screens can look soft at the big sizes.
+
+![Neon and Arcane](docs/pointer-styles-drawn.png)
+![Simple pointer styles](docs/pointer-styles.png)
 
 With several monitors, the TV is picked by its name (e.g. "LG TV SSCR2"). To force one, add `"display": "\\\\.\\DISPLAY2"` or part of its name. Monitor names are listed in the log.
 
@@ -109,7 +114,7 @@ dotnet run --project tests/MagicRemote.Tests    # needs Node.js, and port 3000 f
 
 To look at the TV screens in a desktop browser, serve the repository root (for example `python3 -m http.server 8765`) and open `http://localhost:8765/tests/tv-preview/?scenario=first-run` (also `home`, `connecting`, `connected`, `not-paired`, `replace`).
 
-After changing the pointer art in `tools/make_cursors.py`, run `python3 tools/make_cursors.py` (needs Pillow).
+After changing the pointer art, run `python3 tools/make_pointer_styles.py` (Neon and Arcane, drawn as SVG; needs Pillow and `pip install resvg-py`) or `python3 tools/make_cursors.py` (the simple styles; needs Pillow).
 The logo comes from `tools/make_icon.py` (Pillow). The UI font is [Manrope](https://github.com/googlefonts/manrope) (SIL Open Font License 1.1, see `src/MagicRemote/Fonts/OFL.txt`), cut down to static Latin weights by `tools/make_fonts.py` (needs fontTools).
 
 **Releases:** bump `<Version>` in `Directory.Build.props`, add a `CHANGELOG.md` entry, commit, then run `tools/release.sh`. It tests and builds everything into `distros/<version>/` (the exe, the TV app `.ipk` and their SHA-256 sums) and tags the commit `v<version>`, so `git checkout v1.6.0` gives back any release's source. `distros/` is not in git; every release can be rebuilt from its tag.

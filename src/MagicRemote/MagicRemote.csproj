@@ -21,7 +21,7 @@
     <Reference Include="System.Security" />
     <EmbeddedResource Include="MagicRemote.ico" LogicalName="MagicRemote.ico" />
     <!-- Pointer styles, drawn by tools/make_cursors.py -->
-    <EmbeddedResource Include="Cursors\*.png;Cursors\hotspots.txt" LogicalName="Cursors/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Cursors\*.png;Cursors\hotspots*.txt" LogicalName="Cursors/%(Filename)%(Extension)" />
     <!-- Manrope UI font, made by tools/make_fonts.py; its licence travels inside the exe with it. -->
     <EmbeddedResource Include="Fonts\*.ttf;Fonts\OFL.txt" LogicalName="Fonts/%(Filename)%(Extension)" />
   </ItemGroup>

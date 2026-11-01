@@ -34,7 +34,7 @@ namespace MagicRemote.Config
         /// <summary>Optional remote key overrides, e.g. "green": "alt+tab".</summary>
         [DataMember(Name = "keys", Order = 4, EmitDefaultValue = false)] public Dictionary<string, string> Keys;
         [DataMember(Name = "tvs", Order = 5)] public List<PairedTv> Tvs = new List<PairedTv>();
-        /// <summary>Pointer style used while a TV is connected: windows, drop, classic, cartoon, fantasy, scifi, retro.</summary>
+        /// <summary>Pointer style used while a TV is connected: neon, arcane, drop, classic, cartoon, retro, windows, or "pack:" plus a pointer pack folder.</summary>
         [DataMember(Name = "pointer", Order = 6, EmitDefaultValue = false)] public string Pointer;
         /// <summary>small, medium, large or huge.</summary>
         [DataMember(Name = "pointerSize", Order = 7, EmitDefaultValue = false)] public string PointerSize;
