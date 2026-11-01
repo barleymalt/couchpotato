@@ -10,7 +10,7 @@ A rewrite of [MagicRemoteService](https://github.com/Cathwyler/MagicRemoteServic
 
 > **Status:** early. Covered by automated tests (crypto vectors, the TV app and its background service talking to the PC server, packaging, settings) and tried on one LG TV with a Windows PC. Report what breaks.
 
-Couchpotato is free and open source. If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/KOFI_NAME) ♥
+Couchpotato is free and open source. If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/barleymalt) ♥
 
 ## Download
 
@@ -134,7 +134,7 @@ To get the TV app as an `.ipk` for other install tools: `MR_IPK_OUT=couchpotato.
 
 ## Support
 
-Couchpotato is free, and stays free. If it saves you a trip to the PC's mouse, you can [buy it a coffee on Ko-fi](https://ko-fi.com/KOFI_NAME). Bug reports and ideas are welcome as [issues](../../issues).
+Couchpotato is free, and stays free. If it saves you a trip to the PC's mouse, you can [buy it a coffee on Ko-fi](https://ko-fi.com/barleymalt). Bug reports and ideas are welcome as [issues](../../issues).
 
 ## Licence
 

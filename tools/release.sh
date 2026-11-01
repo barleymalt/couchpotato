@@ -37,7 +37,7 @@ cp src/Couchpotato/bin/Release/net48/Couchpotato.exe "$OUT/Couchpotato-$VERSION.
 
 > **Windows or your antivirus may flag the exe.** It isn't code-signed yet, and it does things antivirus software watches closely (it moves the mouse and types for the remote, changes the pointer, can start itself with administrator rights). If Windows says "Windows protected your PC", click **More info → Run anyway**. The source is all here, and you can build it yourself.
 
-Couchpotato is free and open source. If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/KOFI_NAME) ♥
+Couchpotato is free and open source. If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/barleymalt) ♥
 NOTES
 } > "$OUT/RELEASE-NOTES.md"
 echo "Built $OUT:"

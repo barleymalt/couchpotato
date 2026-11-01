@@ -24,7 +24,7 @@ namespace Couchpotato
         /// <summary>"1.4.0": set once in Directory.Build.props, shown in the window title, the tray and the log.</summary>
         public static readonly string Version = typeof(Program).Assembly.GetName().Version.ToString(3);
         /// <summary>Where "Support it" goes: Couchpotato is free, donations are optional.</summary>
-        public const string SupportUrl = "https://ko-fi.com/KOFI_NAME";
+        public const string SupportUrl = "https://ko-fi.com/barleymalt";
         public const string SupportText = "Free and open source · Support it ♥";
 
         static readonly Dictionary<string, Assembly> Loaded = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
