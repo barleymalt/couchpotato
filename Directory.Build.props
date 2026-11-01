@@ -4,7 +4,7 @@
       Version of the PC app (add a CHANGELOG.md entry). The TV app has its own version in
       tvapp/app/appinfo.json and tvapp/service/package.json; bump those only when the TV app changes.
     -->
-    <Version>1.7.4</Version>
+    <Version>1.7.5</Version>
     <Product>MagicRemote</Product>
     <Company>MagicRemote</Company>
     <Description>Use the LG Magic Remote with this PC</Description>

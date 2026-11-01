@@ -41,9 +41,6 @@ IBEAM = [(92, 36), (164, 36), (164, 54), (138, 54), (138, 202), (164, 202), (164
 
 HAND = [(104, 12), (124, 12), (132, 20), (132, 96), (160, 96), (168, 104), (168, 110), (190, 110), (198, 118), (198, 124),
         (214, 124), (222, 132), (222, 196), (200, 236), (110, 236), (96, 222), (60, 170), (60, 150), (68, 142), (80, 142), (96, 160), (96, 20)]
-DOUBLE = [(14, 128), (66, 76), (66, 110), (190, 110), (190, 76), (242, 128), (190, 180), (190, 146), (66, 146), (66, 180)]
-MOVE = [(128, 10), (170, 52), (144, 52), (144, 112), (204, 112), (204, 86), (246, 128), (204, 170), (204, 144), (144, 144), (144, 204),
-        (170, 204), (128, 246), (86, 204), (112, 204), (112, 144), (52, 144), (52, 170), (10, 128), (52, 86), (52, 112), (112, 112), (112, 52), (86, 52)]
 UP = [(128, 14), (196, 96), (152, 96), (152, 236), (104, 236), (104, 96), (60, 96)]
 PEN = [(20, 236), (38, 190), (184, 44), (212, 72), (66, 218)]
 
@@ -51,6 +48,20 @@ PEN = [(20, 236), (38, 190), (184, 44), (212, 72), (66, 218)]
 def rotated(points, angle, c=(128, 128)):
     a = math.radians(angle)
     return [(c[0] + (x - c[0]) * math.cos(a) - (y - c[1]) * math.sin(a), c[1] + (x - c[0]) * math.sin(a) + (y - c[1]) * math.cos(a)) for x, y in points]
+
+
+def rect(x0, y0, x1, y1):
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+
+# The arrows as convex pieces: Pillow 11 fills some of the whole outlines wrongly (a corner missing or extra).
+DOUBLE_PARTS = [rect(64, 110, 192, 146), [(14, 128), (66, 76), (66, 180)], [(242, 128), (190, 76), (190, 180)]]
+MOVE_PARTS = [rect(112, 50, 144, 206), rect(50, 112, 206, 144), [(128, 10), (170, 52), (86, 52)], [(246, 128), (204, 86), (204, 170)],
+              [(128, 246), (86, 204), (170, 204)], [(10, 128), (52, 86), (52, 170)]]
+
+
+def double(angle):
+    return [rotated(part, angle) for part in DOUBLE_PARTS]
 
 
 def scaled(points, k):
@@ -71,11 +82,11 @@ def more_shapes(normal, normal_hot):
                                 ellipses=[(120, 120, 136, 136)]), centre),
         "pen": (mask_from(polygons=[PEN]), (20, 236)),
         "unavailable": (mask_from(rings=[(128, 128, 86, 26, 0)], lines=[(70, 70, 186, 186, 26)]), centre),
-        "ns": (mask_from(polygons=[rotated(DOUBLE, 90)]), centre),
-        "ew": (mask_from(polygons=[DOUBLE]), centre),
-        "nwse": (mask_from(polygons=[rotated(DOUBLE, 45)]), centre),
-        "nesw": (mask_from(polygons=[rotated(DOUBLE, -45)]), centre),
-        "move": (mask_from(polygons=[MOVE]), centre),
+        "ns": (mask_from(polygons=double(90)), centre),
+        "ew": (mask_from(polygons=double(0)), centre),
+        "nwse": (mask_from(polygons=double(45)), centre),
+        "nesw": (mask_from(polygons=double(-45)), centre),
+        "move": (mask_from(polygons=MOVE_PARTS), centre),
         "up": (mask_from(polygons=[UP]), (128, 16)),
         "location": (mask_from(polygons=[small, [(166, 190), (222, 190), (194, 248)]], ellipses=[(162, 142, 226, 206)]), small_hot),
         "person": (mask_from(polygons=[small], ellipses=[(174, 134, 214, 174), (152, 182, 236, 262)]), small_hot),
