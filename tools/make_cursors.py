@@ -1,6 +1,8 @@
 """
-Draws the simple pointer styles as 256x256 PNGs (normal, text, busy) into src/MagicRemote/Cursors,
-plus hotspots.txt and a preview sheet in docs/pointer-styles.png.
+Draws the simple pointer styles (Drop, Classic, Cartoon, Retro) as 256x256 PNGs, one per Windows pointer
+role, into src/MagicRemote/Cursors, plus hotspots.txt and a preview sheet in docs/pointer-styles.png.
+Each style is a way of painting a shape ("paint"); the shapes are shared, so every style has every pointer.
+The app animates Busy and builds Working from Normal plus a small Busy.
 
 Usage: python3 tools/make_cursors.py      (needs Pillow)
 The PNGs are committed, so this only needs running after changing the art.
@@ -35,6 +37,49 @@ ARROW = [(24, 20), (24, 198), (70, 154), (104, 228), (136, 214), (102, 140), (16
 DELTA = [(22, 18), (58, 214), (92, 150), (188, 126)]
 IBEAM = [(92, 36), (164, 36), (164, 54), (138, 54), (138, 202), (164, 202), (164, 220),
          (92, 220), (92, 202), (118, 202), (118, 54), (92, 54)]
+
+
+HAND = [(104, 12), (124, 12), (132, 20), (132, 96), (160, 96), (168, 104), (168, 110), (190, 110), (198, 118), (198, 124),
+        (214, 124), (222, 132), (222, 196), (200, 236), (110, 236), (96, 222), (60, 170), (60, 150), (68, 142), (80, 142), (96, 160), (96, 20)]
+DOUBLE = [(14, 128), (66, 76), (66, 110), (190, 110), (190, 76), (242, 128), (190, 180), (190, 146), (66, 146), (66, 180)]
+MOVE = [(128, 10), (170, 52), (144, 52), (144, 112), (204, 112), (204, 86), (246, 128), (204, 170), (204, 144), (144, 144), (144, 204),
+        (170, 204), (128, 246), (86, 204), (112, 204), (112, 144), (52, 144), (52, 170), (10, 128), (52, 86), (52, 112), (112, 112), (112, 52), (86, 52)]
+UP = [(128, 14), (196, 96), (152, 96), (152, 236), (104, 236), (104, 96), (60, 96)]
+PEN = [(20, 236), (38, 190), (184, 44), (212, 72), (66, 218)]
+
+
+def rotated(points, angle, c=(128, 128)):
+    a = math.radians(angle)
+    return [(c[0] + (x - c[0]) * math.cos(a) - (y - c[1]) * math.sin(a), c[1] + (x - c[0]) * math.sin(a) + (y - c[1]) * math.cos(a)) for x, y in points]
+
+
+def scaled(points, k):
+    return [(x * k, y * k) for x, y in points]
+
+
+def more_shapes(normal, normal_hot):
+    """The roles beyond normal, text and busy: role -> (mask, hotspot). Badged roles reuse a smaller normal pointer."""
+    k = 0.74
+    small, small_hot = scaled(normal, k), (round(normal_hot[0] * k), round(normal_hot[1] * k))
+    question = [(164, 172, 178, 156, 18), (178, 156, 206, 156, 18), (206, 156, 220, 172, 18), (220, 172, 220, 188, 18),
+                (220, 188, 196, 202, 18), (196, 202, 196, 216, 18)]
+    centre = (128, 128)
+    return {
+        "link": (mask_from(polygons=[HAND]), (114, 14)),
+        "help": (mask_from(polygons=[small], lines=question, ellipses=[(185, 228, 207, 250)]), small_hot),
+        "precision": (mask_from(lines=[(128, 24, 128, 96, 14), (128, 160, 128, 232, 14), (24, 128, 96, 128, 14), (160, 128, 232, 128, 14)],
+                                ellipses=[(120, 120, 136, 136)]), centre),
+        "pen": (mask_from(polygons=[PEN]), (20, 236)),
+        "unavailable": (mask_from(rings=[(128, 128, 86, 26, 0)], lines=[(70, 70, 186, 186, 26)]), centre),
+        "ns": (mask_from(polygons=[rotated(DOUBLE, 90)]), centre),
+        "ew": (mask_from(polygons=[DOUBLE]), centre),
+        "nwse": (mask_from(polygons=[rotated(DOUBLE, 45)]), centre),
+        "nesw": (mask_from(polygons=[rotated(DOUBLE, -45)]), centre),
+        "move": (mask_from(polygons=[MOVE]), centre),
+        "up": (mask_from(polygons=[UP]), (128, 16)),
+        "location": (mask_from(polygons=[small, [(166, 190), (222, 190), (194, 248)]], ellipses=[(162, 142, 226, 206)]), small_hot),
+        "person": (mask_from(polygons=[small], ellipses=[(174, 134, 214, 174), (152, 182, 236, 262)]), small_hot),
+    }
 
 
 def star(cx, cy, outer, inner, points=5, rotation=-90):
@@ -146,7 +191,7 @@ def theme_drop():
     pointer = paint(mask_from(polygons=[teardrop()]))
     text = paint(mask_from(polygons=[IBEAM]), 7)
     busy = paint(mask_from(**BUSY), 7)
-    return pointer, (26, 22), text, (128, 128), busy, (128, 128)
+    return pointer, (26, 22), text, (128, 128), busy, (128, 128), paint, teardrop()
 
 
 def theme_classic():
@@ -156,7 +201,7 @@ def theme_classic():
     pointer = paint(mask_from(polygons=[ARROW]))
     text = paint(mask_from(polygons=[IBEAM]), 7)
     busy = paint(mask_from(**BUSY), 7)
-    return pointer, (24, 20), text, (128, 128), busy, (128, 128)
+    return pointer, (24, 20), text, (128, 128), busy, (128, 128), paint, ARROW
 
 
 def theme_cartoon():
@@ -169,7 +214,7 @@ def theme_cartoon():
     pointer = paint(mask_from(polygons=[ARROW]))
     text = paint(mask_from(polygons=[IBEAM]), 9)
     busy = paint(mask_from(**BUSY), 9)
-    return pointer, (26, 23), text, (128, 128), busy, (128, 128)
+    return pointer, (26, 23), text, (128, 128), busy, (128, 128), paint, ARROW
 
 
 def theme_fantasy():
@@ -230,7 +275,15 @@ def theme_retro():
     busy.paste((255, 255, 255, 255), mask=ring)
     busy = busy.resize((SIZE, SIZE), Image.NEAREST)
     cell = SIZE / 22
-    return pointer, (int(2 * cell), int(2 * cell)), text, (128, 128), busy, (128, 128)
+
+    def paint(m):
+        """Any shape as 22x22 pixel art, white with a black outline."""
+        small = m.resize((22, 22), Image.BOX).point(lambda v: 255 if v > 90 else 0)
+        img = Image.new("RGBA", (22, 22), (0, 0, 0, 0))
+        img.paste((0, 0, 0, 255), mask=small.filter(ImageFilter.MaxFilter(3)))
+        img.paste((255, 255, 255, 255), mask=small)
+        return img.resize((SIZE, SIZE), Image.NEAREST)
+    return pointer, (int(2 * cell), int(2 * cell)), text, (128, 128), busy, (128, 128), paint, ARROW
 
 
 # Fantasy and Sci-fi became the fully drawn Arcane and Neon (tools/make_pointer_styles.py).
@@ -242,25 +295,26 @@ def main():
     hotspots = []
     sheet_rows = []
     for name, make in THEMES:
-        pointer, p_hot, text, t_hot, busy, b_hot = make()
-        work = working(pointer, busy)  # only for the preview sheet: the app builds Working itself
-        for shape, img, hot in (("normal", pointer, p_hot), ("text", text, t_hot), ("busy", busy, b_hot)):
-            img.save(os.path.join(OUT, f"{name}-{shape}.png"), optimize=True)
-            hotspots.append(f"{name} {shape} {hot[0]} {hot[1]}")
-        sheet_rows.append((name, [pointer, text, busy, work]))
+        pointer, p_hot, text, t_hot, busy, b_hot, paint, normal = make()
+        roles = [("normal", pointer, p_hot), ("text", text, t_hot), ("busy", busy, b_hot)]
+        roles += [(role, paint(m), hot) for role, (m, hot) in more_shapes(normal, p_hot).items()]
+        for role, img, hot in roles:
+            img.save(os.path.join(OUT, f"{name}-{role}.png"), optimize=True)
+            hotspots.append(f"{name} {role} {hot[0]} {hot[1]}")
+        sheet_rows.append([img for _, img, _ in roles])
 
     with open(os.path.join(OUT, "hotspots.txt"), "w") as f:
         f.write("# theme shape x y (in the 256x256 images); generated by tools/make_cursors.py\n")
         f.write("\n".join(hotspots) + "\n")
 
-    cell = 112
-    sheet = Image.new("RGBA", (cell * 8, cell * len(sheet_rows)), (0, 0, 0, 0))
-    for r, (name, imgs) in enumerate(sheet_rows):
-        for half, bg in enumerate([(245, 245, 245, 255), (32, 36, 44, 255)]):
-            for c, img in enumerate(imgs):
-                x, y = (half * 4 + c) * cell, r * cell
+    cell = 96
+    sheet = Image.new("RGBA", (cell * len(sheet_rows[0]), cell * len(sheet_rows) * 2), (0, 0, 0, 0))
+    for half, bg in enumerate([(32, 36, 44, 255), (245, 245, 245, 255)]):
+        for r, row in enumerate(sheet_rows):
+            for c, img in enumerate(row):
+                x, y = c * cell, (half * len(sheet_rows) + r) * cell
                 sheet.paste(bg, (x, y, x + cell, y + cell))
-                sheet.alpha_composite(img.resize((cell - 16, cell - 16), Image.LANCZOS), (x + 8, y + 8))
+                sheet.alpha_composite(img.resize((cell - 12, cell - 12), Image.LANCZOS), (x + 6, y + 6))
     sheet.save(os.path.join(ROOT, "docs", "pointer-styles.png"), optimize=True)
     print("wrote", len(hotspots), "cursors")
 

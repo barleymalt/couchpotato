@@ -56,8 +56,10 @@ The settings live in `%LOCALAPPDATA%\MagicRemote\config.json` (`"keys"` section)
 
 Tray icon → **Pointer…**. While the TV is connected, the PC uses a big pointer that's easy to follow from the sofa; your usual pointer comes back when it disconnects. Four sizes, and these styles:
 
-- **Neon** (cyberpunk) and **Arcane** (dark fantasy): all 17 Windows pointers (links, text, resizing, busy…), with an animated Busy and Working.
-- **Drop** (like the TV's own pointer), **Classic**, **Cartoon** and **Retro**: the main pointers, others stay Windows' own.
+- **Neon** (cyberpunk) and **Arcane** (dark fantasy), drawn in detail.
+- **Drop** (like the TV's own pointer), **Classic**, **Cartoon** and **Retro** (pixel art).
+
+Every style has all 17 Windows pointers (links, text, resizing, moving, busy…), with an animated Busy and Working.
 - **Windows default**, or any **pointer pack**: a Windows pointer set (`.cur`/`.ani` files, usually with an `install.inf`) in its own folder inside `%LOCALAPPDATA%\MagicRemote\Pointers` (Pointer tab → **Open the pointers folder**). Packs made for normal screens can look soft at the big sizes.
 
 ![Neon and Arcane](docs/pointer-styles-drawn.png)

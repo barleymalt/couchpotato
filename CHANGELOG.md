@@ -2,6 +2,9 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.7.3 (TV app 1.4.3: no need to reinstall it if you have 1.4.3)
+- Drop, Classic, Cartoon and Retro have all 17 pointers too: link hand, help, crosshair, pen, not allowed, the resize and move arrows, alternate select, location and person.
+
 ## 1.7.2 (TV app 1.4.3: no need to reinstall it if you have 1.4.3)
 - Fixed: switching to a style with fewer pointers (Drop, Classic, Cartoon, Retro, some packs) kept the previous style's other pointers, such as Neon's resize arrows. Pointers a style doesn't have are Windows' own again.
 
