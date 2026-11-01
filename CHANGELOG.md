@@ -2,6 +2,9 @@
 
 Updating: replace `MagicRemote.exe`, then open it → **TV** tab → **Install on TV**. The pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating; patch versions (1.4.x) only need it when noted below.
 
+## 1.6.1 (TV app 1.4.2: no need to reinstall it)
+- Fixed: the window crashed on opening ("Object reference not set to an instance of an object").
+
 ## 1.6.0 (TV app 1.4.2: reinstall only if you want the new icon on the TV)
 - The window has its own title bar instead of the Windows one: logo, version and connection status, with minimize, maximize and close. Dragging, snapping and resizing work as before.
 - New font (Manrope, built in), larger instructions and more room around the edges.

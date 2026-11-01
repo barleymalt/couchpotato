@@ -181,6 +181,7 @@ namespace MagicRemote.Ui
         protected override void OnLayout(LayoutEventArgs e)
         {
             base.OnLayout(e);
+            if (_close == null) return; // setting Height in the constructor lays out before the buttons exist
             int x = Width;
             foreach (var b in new[] { _close, _max, _min })
             {
