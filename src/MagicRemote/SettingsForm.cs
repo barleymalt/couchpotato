@@ -32,6 +32,7 @@ namespace MagicRemote
         readonly Panel _content = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background };
         readonly Dictionary<string, (PillButton Tab, Control Page)> _pages = new Dictionary<string, (PillButton, Control)>();
         readonly ButtonsPage _buttons;
+        readonly PageFade _fade;
         string _current;
         bool _sized, _searching;
 
@@ -62,6 +63,7 @@ namespace MagicRemote
 
             Controls.Add(_content);
             Controls.Add(tabs);
+            _fade = new PageFade(this, _content);
             ShowTab("tv");
 
             _search.Click += async (s, e) => await SearchAsync();
@@ -121,22 +123,25 @@ namespace MagicRemote
             _pages[name] = (tab, page);
         }
 
-        /// <summary>Opens a page: "tv", "buttons" or "pointer".</summary>
+        /// <summary>Opens a page: "tv", "buttons" or "pointer", fading over from the one before.</summary>
         public void ShowTab(string name)
         {
-            if (!_pages.ContainsKey(name)) return;
+            if (!_pages.ContainsKey(name) || name == _current) return;
             var clock = Stopwatch.StartNew();
+            foreach (var kv in _pages) kv.Value.Tab.Kind = kv.Key == name ? PillKind.TabSelected : PillKind.Tab;
+            if (Visible) _fade.Run(() => Switch(name));
+            else Switch(name);
+            if (Visible && clock.ElapsedMilliseconds > 150) Log.Info("Opening the " + name + " page took " + clock.ElapsedMilliseconds + " ms");
+        }
+
+        void Switch(string name)
+        {
+            _content.SuspendLayout();
+            _pages[name].Page.Visible = true; // show the new one first, so nothing behind it is drawn in between
             foreach (var kv in _pages)
-            {
-                kv.Value.Tab.Kind = kv.Key == name ? PillKind.TabSelected : PillKind.Tab;
-                kv.Value.Page.Visible = kv.Key == name;
-            }
+                if (kv.Key != name) kv.Value.Page.Visible = false;
+            _content.ResumeLayout();
             _current = name;
-            if (Visible)
-            {
-                _pages[name].Page.Update();
-                if (clock.ElapsedMilliseconds > 150) Log.Info("Opening the " + name + " page took " + clock.ElapsedMilliseconds + " ms");
-            }
         }
 
         /// <summary>The header's status, kept current by the tray.</summary>

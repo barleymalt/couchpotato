@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace MagicRemote.Ui
@@ -371,21 +373,18 @@ namespace MagicRemote.Ui
             return link;
         }
 
-        public static FlowLayoutPanel Row(params Control[] controls)
+        public static Flow Row(params Control[] controls)
         {
             // No BackColor: it inherits the card's, which the rounded children paint their corners with.
-            var row = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0, 2, 0, 4) };
+            var row = new Flow { Margin = new Padding(0, 2, 0, 4) };
             row.Controls.AddRange(controls);
             return row;
         }
 
-        public static ComboBox Combo(int width, bool editable) => new ComboBox
+        public static ComboBox Combo(int width, bool editable) => new Combo
         {
             Width = width,
             DropDownStyle = editable ? ComboBoxStyle.DropDown : ComboBoxStyle.DropDownList,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Theme.Field,
-            ForeColor = Theme.Text,
             Margin = new Padding(0, 3, 8, 3),
         };
 
@@ -399,5 +398,202 @@ namespace MagicRemote.Ui
             page.Controls.Add(column);
             return page;
         }
+    }
+
+    /// <summary>
+    /// A row that wraps, as tall as its rows at the width it really gets. In an auto-sized table a
+    /// FlowLayoutPanel measures itself at a narrower width, which left empty space under it.
+    /// </summary>
+    class Flow : FlowLayoutPanel
+    {
+        // Control's own visibility (STATE_VISIBLE), which unlike Visible ignores hidden parents such as a page in another tab.
+        static readonly MethodInfo GetState = typeof(Control).GetMethod("GetState", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(int) }, null);
+
+        public Flow()
+        {
+            AutoSize = true;
+            WrapContents = true;
+            Dock = DockStyle.Fill;
+        }
+
+        public override Size GetPreferredSize(Size proposed)
+        {
+            int width = Parent == null ? 0 : Parent.ClientSize.Width - Parent.Padding.Horizontal - Margin.Horizontal;
+            if (width <= 0) return base.GetPreferredSize(proposed);
+            width -= Padding.Horizontal;
+            int x = 0, y = 0, row = 0, widest = 0;
+            foreach (Control c in Controls)
+            {
+                if (!Shown(c)) continue;
+                var size = c.AutoSize ? c.GetPreferredSize(Size.Empty) : c.Size;
+                int w = size.Width + c.Margin.Horizontal, h = size.Height + c.Margin.Vertical;
+                if (x > 0 && x + w > width)
+                {
+                    y += row;
+                    x = row = 0;
+                }
+                x += w;
+                row = Math.Max(row, h);
+                widest = Math.Max(widest, x);
+            }
+            return new Size(widest + Padding.Horizontal, y + row + Padding.Vertical);
+        }
+
+        static bool Shown(Control c) => GetState == null ? c.Visible : (bool)GetState.Invoke(c, new object[] { 0x2 });
+    }
+
+    /// <summary>
+    /// A combo box in the theme: a rounded dark field with a chevron, and a dark list. Windows still does
+    /// the typing (the edit box inside), the list and autocomplete; only the drawing is ours.
+    /// </summary>
+    class Combo : ComboBox
+    {
+        const int WM_PAINT = 0x0F;
+        bool _listThemed;
+
+        public Combo()
+        {
+            DrawMode = DrawMode.OwnerDrawFixed;
+            FlatStyle = FlatStyle.Flat;
+            BackColor = Theme.Field;
+            ForeColor = Theme.Text;
+            ItemHeight = FieldHeight;
+        }
+
+        int FieldHeight => Font.Height + (int)Theme.Px(this, 14);
+        int TextInset => (int)Theme.Px(this, 14);
+        int ChevronWidth => (int)Theme.Px(this, 36);
+
+        protected override void OnFontChanged(EventArgs e)
+        {
+            base.OnFontChanged(e);
+            ItemHeight = FieldHeight;
+            PlaceEditBox();
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            PlaceEditBox();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            PlaceEditBox();
+        }
+
+        protected override void OnEnter(EventArgs e) { Invalidate(); base.OnEnter(e); }
+        protected override void OnLeave(EventArgs e) { Invalidate(); base.OnLeave(e); }
+        protected override void OnDropDownClosed(EventArgs e) { Invalidate(); base.OnDropDownClosed(e); }
+        protected override void OnSelectedIndexChanged(EventArgs e) { Invalidate(); base.OnSelectedIndexChanged(e); }
+
+        protected override void OnDropDown(EventArgs e)
+        {
+            Invalidate();
+            if (!_listThemed && Info(out var info))
+            {
+                // Dark scrollbar in the list.
+                try { SetWindowTheme(info.hwndList, "DarkMode_Explorer", null); } catch (Exception) { }
+                _listThemed = true;
+            }
+            base.OnDropDown(e);
+        }
+
+        /// <summary>Moves the edit box in from the rounded border and centres it vertically.</summary>
+        void PlaceEditBox()
+        {
+            if (DropDownStyle != ComboBoxStyle.DropDown || !IsHandleCreated || !Info(out var info) || info.hwndItem == IntPtr.Zero) return;
+            int height = Font.Height + 2;
+            SetWindowPos(info.hwndItem, IntPtr.Zero, TextInset, (Height - height) / 2, Math.Max(0, Width - TextInset - ChevronWidth), height, 0x0014 /* NOZORDER | NOACTIVATE */);
+        }
+
+        protected override void OnDrawItem(DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+            bool hot = (e.State & DrawItemState.Selected) != 0 && (e.State & DrawItemState.ComboBoxEdit) == 0;
+            using (var brush = new SolidBrush(hot ? Theme.SurfaceHover : Theme.Field)) e.Graphics.FillRectangle(brush, e.Bounds);
+            var text = new Rectangle(e.Bounds.X + TextInset, e.Bounds.Y, e.Bounds.Width - TextInset, e.Bounds.Height);
+            TextRenderer.DrawText(e.Graphics, GetItemText(Items[e.Index]), Font, text, e.Index == SelectedIndex ? Theme.Accent : Theme.Text,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg != WM_PAINT)
+            {
+                base.WndProc(ref m);
+                return;
+            }
+            // The field is all ours: border, background, chevron and, without an edit box, the chosen item.
+            var ps = new PAINTSTRUCT();
+            var hdc = BeginPaint(Handle, ref ps);
+            try
+            {
+                using (var buffer = BufferedGraphicsManager.Current.Allocate(hdc, ClientRectangle))
+                {
+                    PaintField(buffer.Graphics);
+                    buffer.Render();
+                }
+            }
+            finally
+            {
+                EndPaint(Handle, ref ps);
+            }
+        }
+
+        void PaintField(Graphics g)
+        {
+            g.Clear(Theme.Behind(this));
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            bool active = ContainsFocus || DroppedDown;
+            using (var path = Theme.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Theme.Px(this, 10)))
+            {
+                using (var brush = new SolidBrush(Theme.Field)) g.FillPath(brush, path);
+                using (var pen = new Pen(active ? Theme.Accent : Theme.Border, active ? Math.Max(1f, Theme.Px(this, 1.5f)) : 1f)) g.DrawPath(pen, path);
+            }
+
+            float s = Theme.Px(this, 5), cx = Width - ChevronWidth / 2f, cy = Height / 2f;
+            float tip = DroppedDown ? -s / 2 : s / 2;
+            using (var pen = new Pen(Enabled ? Theme.Muted : Theme.Border, Math.Max(1f, Theme.Px(this, 1.6f))) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+                g.DrawLines(pen, new[] { new PointF(cx - s, cy - tip), new PointF(cx, cy + tip), new PointF(cx + s, cy - tip) });
+
+            if (DropDownStyle == ComboBoxStyle.DropDownList)
+                TextRenderer.DrawText(g, Text, Font, new Rectangle(TextInset, 0, Width - TextInset - ChevronWidth, Height), Enabled ? Theme.Text : Theme.Muted,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+        }
+
+        bool Info(out COMBOBOXINFO info)
+        {
+            info = new COMBOBOXINFO { cbSize = Marshal.SizeOf(typeof(COMBOBOXINFO)) };
+            return IsHandleCreated && GetComboBoxInfo(Handle, ref info);
+        }
+
+        [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct COMBOBOXINFO
+        {
+            public int cbSize;
+            public RECT rcItem, rcButton;
+            public int stateButton;
+            public IntPtr hwndCombo, hwndItem, hwndList;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct PAINTSTRUCT
+        {
+            public IntPtr hdc;
+            public bool fErase;
+            public RECT rcPaint;
+            public bool fRestore, fIncUpdate;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] rgbReserved;
+        }
+
+        [DllImport("user32.dll")] static extern bool GetComboBoxInfo(IntPtr hwnd, ref COMBOBOXINFO info);
+        [DllImport("user32.dll")] static extern IntPtr BeginPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
+        [DllImport("user32.dll")] static extern bool EndPaint(IntPtr hwnd, ref PAINTSTRUCT ps);
+        [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hwnd, string app, string idList);
     }
 }

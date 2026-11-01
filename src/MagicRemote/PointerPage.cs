@@ -33,7 +33,7 @@ namespace MagicRemote
 
             var styles = column.Add(new Card());
             styles.Add(Make.Heading("Style"));
-            var tiles = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 4, 0, 0) };
+            var tiles = new Flow { Margin = new Padding(0, 4, 0, 0) };
             foreach (var style in PointerThemes.Styles)
             {
                 var tile = new Tile(style.Value, PointerThemes.Preview(style.Key) ?? WindowsArrow()) { Selected = style.Key == _style, Tag = style.Key };
