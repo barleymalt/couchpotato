@@ -10,17 +10,24 @@ namespace MagicRemote.Ui
     /// A window without the Windows title bar: its own <see cref="TitleBar"/> instead. It stays a normal
     /// resizable window underneath, so dragging, snapping, double-click to maximize, the shadow, rounded
     /// corners on Windows 11 and Alt+Space keep working.
+    /// It also does its own DPI scaling (WinForms on .NET Framework scales once, for the main screen):
+    /// controls are made in 96-DPI pixels and scaled to the screen the window is on, again whenever it
+    /// moves to a screen with different scaling, such as a 4K TV next to a laptop.
     /// </summary>
     class ChromeForm : Form
     {
-        const int WM_NCCALCSIZE = 0x83, WM_NCHITTEST = 0x84;
+        const int WM_NCCALCSIZE = 0x83, WM_NCHITTEST = 0x84, WM_DPICHANGED = 0x2E0;
         const int HTCLIENT = 1, HTCAPTION = 2, HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13, HTTOPRIGHT = 14,
                   HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
 
         public readonly TitleBar TitleBar;
 
+        /// <summary>The DPI the controls are laid out for; 96 until the window is first shown.</summary>
+        int _dpi = 96;
+
         protected ChromeForm(string title, string subtitle)
         {
+            AutoScaleMode = AutoScaleMode.None;
             FormBorderStyle = FormBorderStyle.Sizable;
             DoubleBuffered = true;
             TitleBar = new TitleBar(this, title, subtitle);
@@ -55,6 +62,43 @@ namespace MagicRemote.Ui
             TitleBar?.Invalidate(true);
         }
 
+        /// <summary>Lays the window out for a DPI: sizes, spacing and fonts. Doesn't move or resize the window.</summary>
+        protected void ScaleTo(int dpi)
+        {
+            Theme.Dpi = dpi;
+            SuspendLayout();
+            if (dpi != _dpi)
+            {
+                var factor = new SizeF(dpi / (float)_dpi, dpi / (float)_dpi);
+                foreach (Control c in Controls) c.Scale(factor);
+                MinimumSize = Size.Round(new SizeF(MinimumSize.Width * factor.Width, MinimumSize.Height * factor.Height));
+                _dpi = dpi;
+            }
+            Theme.RefreshFonts(this);
+            ResumeLayout(true);
+            OnResize(EventArgs.Empty);
+            Invalidate(true);
+        }
+
+        /// <summary>Scales controls made after the window was laid out (sizes in 96-DPI pixels).</summary>
+        public void Adopt(Control control)
+        {
+            if (_dpi != 96) control.Scale(new SizeF(_dpi / 96f, _dpi / 96f));
+            Theme.RefreshFonts(control);
+        }
+
+        /// <summary>The DPI of the screen at a point (on screens that can't tell, the main screen's).</summary>
+        protected static int DpiAt(Point p)
+        {
+            try
+            {
+                var monitor = MonitorFromPoint(p, 2 /* MONITOR_DEFAULTTONEAREST */);
+                if (GetDpiForMonitor(monitor, 0 /* MDT_EFFECTIVE_DPI */, out uint x, out _) == 0) return (int)x;
+            }
+            catch (Exception e) when (e is DllNotFoundException || e is EntryPointNotFoundException) { } // before Windows 8.1
+            return Theme.Dpi;
+        }
+
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_NCCALCSIZE && m.WParam != IntPtr.Zero)
@@ -70,6 +114,20 @@ namespace MagicRemote.Ui
                     p.Rect0.Right -= frame;
                     p.Rect0.Bottom -= frame;
                     Marshal.StructureToPtr(p, m.LParam, false);
+                }
+                m.Result = IntPtr.Zero;
+                return;
+            }
+            if (m.Msg == WM_DPICHANGED)
+            {
+                // Dragged to (or opened on) a screen with different scaling: relayout, then take the size
+                // Windows suggests, unless the layout was already for this DPI (the window placed itself).
+                int dpi = m.WParam.ToInt32() & 0xFFFF;
+                if (dpi != _dpi)
+                {
+                    ScaleTo(dpi);
+                    var r = (Rect)Marshal.PtrToStructure(m.LParam, typeof(Rect));
+                    SetWindowPos(Handle, IntPtr.Zero, r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top, 0x0014 /* NOZORDER | NOACTIVATE */);
                 }
                 m.Result = IntPtr.Zero;
                 return;
@@ -124,6 +182,8 @@ namespace MagicRemote.Ui
         [DllImport("user32.dll")] static extern int GetSystemMetricsForDpi(int index, uint dpi);
         [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr hwnd);
         [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+        [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(Point p, uint flags);
+        [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
     }
 
     /// <summary>

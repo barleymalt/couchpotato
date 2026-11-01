@@ -50,9 +50,7 @@ namespace MagicRemote
             Text = "MagicRemote " + Program.Version;
             using (var s = typeof(SettingsForm).Assembly.GetManifestResourceStream("MagicRemote.ico")) Icon = new Icon(s);
             Theme.Apply(this);
-            // Sizes are in 96-DPI pixels; WinForms scales them up on high-DPI screens such as a 4K TV.
-            AutoScaleDimensions = new SizeF(96F, 96F);
-            AutoScaleMode = AutoScaleMode.Dpi;
+            // Sizes are in 96-DPI pixels; ChromeForm scales them to the screen the window is on.
             MinimumSize = new Size(560, 520);
             StartPosition = FormStartPosition.Manual;
 
@@ -85,16 +83,18 @@ namespace MagicRemote
         }
 
         /// <summary>
-        /// The first time: a quarter of the width of the screen the pointer is on (where the user is
-        /// looking, often the TV), never too small to read, and centred there.
+        /// The first time: laid out for the screen the pointer is on (where the user is looking, often the
+        /// TV), half its width, never too small to read, and centred there.
         /// </summary>
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
             if (_sized) return;
             _sized = true;
-            var area = Screen.FromPoint(Cursor.Position).WorkingArea;
-            int width = Math.Min(area.Width, Math.Max(area.Width / 4, (int)Theme.Px(this, 560)));
+            var cursor = Cursor.Position;
+            ScaleTo(DpiAt(cursor));
+            var area = Screen.FromPoint(cursor).WorkingArea;
+            int width = Math.Min(area.Width, Math.Max(area.Width / 2, (int)Theme.Px(this, 560)));
             int height = Math.Min((int)(area.Height * 0.9), (int)Theme.Px(this, 860));
             Bounds = new Rectangle(area.Left + (area.Width - width) / 2, area.Top + (area.Height - height) / 2, width, height);
         }
@@ -309,7 +309,7 @@ namespace MagicRemote
             _pairedList.SuspendLayout();
             _pairedList.Controls.Clear();
             var tvs = _store.Tvs;
-            if (tvs.Count == 0) _pairedList.Add(Make.Text("No TV set up yet. Follow the steps below.", muted: true));
+            if (tvs.Count == 0) Adopt(_pairedList.Add(Make.Text("No TV set up yet. Follow the steps below.", muted: true)));
             foreach (var tv in tvs)
             {
                 var row = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 6) };
@@ -324,6 +324,7 @@ namespace MagicRemote
                 var name = tv.Name;
                 forget.Click += (s, e) => Forget(id, name);
                 row.Controls.Add(forget);
+                Adopt(row);
                 _pairedList.Add(row);
             }
             _pairedList.ResumeLayout();

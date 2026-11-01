@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -32,14 +33,52 @@ namespace MagicRemote.Ui
         static readonly FontFamily Regular = LoadFont("Manrope", "Segoe UI", "Manrope-Regular.ttf", "Manrope-Bold.ttf");
         static readonly FontFamily SemiBold = LoadFont("Manrope SemiBold", "Segoe UI Semibold", "Manrope-SemiBold.ttf");
 
-        // Sizes in points: 11.25 pt is 15 px at 100 % scaling.
-        public static readonly Font Body = new Font(Regular, 11.25f);
+        /// <summary>
+        /// The DPI the settings window is laid out for: that of the screen it's on (a 4K TV is often 288,
+        /// a laptop 120). Fonts and <see cref="Px"/> follow it. It starts at the main screen's.
+        /// </summary>
+        public static int Dpi = SystemDpi();
+
+        // Sizes in points at the current DPI: 11.25 pt is 15 px at 100 % scaling.
+        public static Font Body => At(Regular, 11.25f);
         /// <summary>Instructions and page introductions: a step larger than the rest.</summary>
-        public static readonly Font Instructions = new Font(Regular, 12f);
-        public static readonly Font Small = new Font(Regular, 10.5f);
-        public static readonly Font Strong = new Font(SemiBold, 11.25f);
-        public static readonly Font Heading = new Font(Regular, 14.25f, FontStyle.Bold);
-        public static readonly Font Title = new Font(Regular, 15.75f, FontStyle.Bold);
+        public static Font Instructions => At(Regular, 12f);
+        public static Font Small => At(Regular, 10.5f);
+        public static Font Strong => At(SemiBold, 11.25f);
+        public static Font Heading => At(Regular, 14.25f, FontStyle.Bold);
+        public static Font Title => At(Regular, 15.75f, FontStyle.Bold);
+
+        static readonly Dictionary<(string, float, FontStyle, int), Font> Fonts = new Dictionary<(string, float, FontStyle, int), Font>();
+        static readonly Dictionary<Font, (FontFamily Family, float Points, FontStyle Style)> Made = new Dictionary<Font, (FontFamily, float, FontStyle)>();
+
+        // In pixels, so the size doesn't depend on the DPI Windows reports to this process (the main screen's).
+        static Font At(FontFamily family, float points, FontStyle style = FontStyle.Regular)
+        {
+            var key = (family.Name, points, style, Dpi);
+            if (!Fonts.TryGetValue(key, out var font))
+            {
+                font = new Font(family, points * Dpi / 72f, style, GraphicsUnit.Pixel);
+                Fonts[key] = font;
+                Made[font] = (family, points, style);
+            }
+            return font;
+        }
+
+        /// <summary>Gives a control and everything in it the theme's fonts at the current DPI; other fonts stay.</summary>
+        public static void RefreshFonts(Control control)
+        {
+            if (Made.TryGetValue(control.Font, out var spec))
+            {
+                var font = At(spec.Family, spec.Points, spec.Style);
+                if (!ReferenceEquals(font, control.Font)) control.Font = font;
+            }
+            foreach (Control child in control.Controls) RefreshFonts(child);
+        }
+
+        static int SystemDpi()
+        {
+            using (var g = Graphics.FromHwnd(IntPtr.Zero)) return (int)Math.Round(g.DpiY);
+        }
 
         /// <summary>
         /// Loads embedded font files for both drawing paths: GDI+ (Font objects) through a private collection,
@@ -114,8 +153,8 @@ namespace MagicRemote.Ui
             return path;
         }
 
-        /// <summary>Scales a 96-DPI length to the control's DPI.</summary>
-        public static float Px(Control c, float value) => value * c.DeviceDpi / 96f;
+        /// <summary>Scales a 96-DPI length to the current <see cref="Dpi"/>.</summary>
+        public static float Px(Control c, float value) => value * Dpi / 96f;
 
         /// <summary>The colour behind a control, for painting its rounded corners.</summary>
         public static Color Behind(Control c) => c.Parent?.BackColor ?? Background;
