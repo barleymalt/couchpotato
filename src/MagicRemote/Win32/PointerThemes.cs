@@ -77,6 +77,9 @@ namespace MagicRemote.Win32
             style = Normalize(style);
             double share = Sizes.FirstOrDefault(s => s.Key == size).Value;
             int pixels = Math.Max(32, Math.Min(256, (int)Math.Round(screenHeight * (share > 0 ? share : 0.06))));
+            // Start from the user's own pointers: a style (or pack) without some pointers must not keep the
+            // previous style's ones, e.g. Neon's resize arrows after switching to Drop.
+            SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
             try
             {
                 if (style.StartsWith(PackPrefix))
