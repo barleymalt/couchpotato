@@ -1,0 +1,18 @@
+{
+	"id": "com.magicremote.tv",
+	"version": "1.4.2",
+	"vendor": "MagicRemote",
+	"type": "web",
+	"main": "index.html",
+	"title": "MagicRemote",
+	"appDescription": "Control your PC with the Magic Remote",
+	"icon": "icon.png",
+	"largeIcon": "largeIcon.png",
+	"bgColor": "#1f2933",
+	"iconColor": "#52c4a0",
+	"transparent": true,
+	"defaultWindowType": "floating",
+	"noSplashOnLaunch": true,
+	"disableBackHistoryAPI": true,
+	"supportGIP": true
+}

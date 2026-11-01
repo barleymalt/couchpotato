@@ -1,0 +1,9 @@
+{
+	"id": "com.magicremote.tv.service",
+	"description": "MagicRemote background service",
+	"services": [
+		{
+			"name": "com.magicremote.tv.service"
+		}
+	]
+}

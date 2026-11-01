@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- .NET Framework 4.8 ships with Windows 10 and 11, so the exe needs no runtime install. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>MagicRemote</RootNamespace>
+    <AssemblyName>MagicRemote</AssemblyName>
+    <ApplicationIcon>MagicRemote.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MagicRemote.Core\MagicRemote.Core.csproj" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Security" />
+    <EmbeddedResource Include="MagicRemote.ico" LogicalName="MagicRemote.ico" />
+    <!-- Pointer styles, drawn by tools/make_cursors.py -->
+    <EmbeddedResource Include="Cursors\*.png;Cursors\hotspots.txt" LogicalName="Cursors/%(Filename)%(Extension)" />
+    <!-- Manrope UI font, made by tools/make_fonts.py; its licence travels inside the exe with it. -->
+    <EmbeddedResource Include="Fonts\*.ttf;Fonts\OFL.txt" LogicalName="Fonts/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Embed every referenced DLL, gzipped, so MagicRemote.exe works as a single small file (see Program.ResolveEmbedded). -->
+  <UsingTask TaskName="GzipFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputDir ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Directory.CreateDirectory(OutputDir);
+        foreach (var f in Files)
+        {
+            var target = Path.Combine(OutputDir, Path.GetFileName(f.ItemSpec) + ".gz");
+            using (var input = File.OpenRead(f.ItemSpec))
+            using (var output = File.Create(target))
+            using (var gz = new GZipStream(output, CompressionLevel.Optimal))
+                input.CopyTo(gz);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="EmbedDependencies" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <DependencyDll Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' And '%(ReferenceCopyLocalPaths.DestinationSubDirectory)' == ''" />
+    </ItemGroup>
+    <GzipFiles Files="@(DependencyDll)" OutputDir="$(IntermediateOutputPath)deps" />
+    <ItemGroup>
+      <EmbeddedResource Include="@(DependencyDll->'$(IntermediateOutputPath)deps\%(Filename)%(Extension).gz')">
+        <LogicalName>deps/%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
+
+</Project>

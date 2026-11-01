@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>MagicRemote</title>
+	<style>
+		html, body {
+			margin: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background: transparent;
+			font-family: "LG Smart UI", "Museo Sans", sans-serif;
+		}
+		#surface {
+			position: fixed;
+			left: 0; top: 0; right: 0; bottom: 0;
+		}
+		#kbd {
+			position: fixed;
+			left: 0; top: 0;
+			width: 1px; height: 1px;
+			opacity: 0;
+		}
+		.toast {
+			position: fixed;
+			left: 50%; bottom: 60px;
+			max-width: 70%;
+			padding: 18px 32px;
+			border-radius: 12px;
+			background: rgba(31, 41, 51, 0.92);
+			color: #f5f7fa;
+			font-size: 28px;
+			-webkit-transform: translateX(-50%);
+			transform: translateX(-50%);
+			display: none;
+		}
+		.toast.visible { display: block; }
+		.backdrop {
+			position: fixed;
+			left: 0; top: 0; right: 0; bottom: 0;
+			background: rgba(0, 0, 0, 0.45);
+		}
+		.dialog {
+			position: absolute;
+			left: 50%; top: 50%;
+			min-width: 640px;
+			max-width: 60%;
+			padding: 40px 48px 32px;
+			border-radius: 16px;
+			background: #1f2933;
+			color: #f5f7fa;
+			-webkit-transform: translate(-50%, -50%);
+			transform: translate(-50%, -50%);
+		}
+		.dialog h1 { margin: 0 0 16px; font-size: 40px; font-weight: 600; }
+		.dialog p { margin: 0 0 28px; font-size: 26px; line-height: 1.4; color: #cbd2d9; }
+		.dialog .buttons { text-align: right; }
+		.dialog button {
+			margin: 8px 0 0 16px;
+			padding: 16px 32px;
+			min-width: 200px;
+			border: 3px solid transparent;
+			border-radius: 10px;
+			background: #3e4c59;
+			color: #f5f7fa;
+			font: inherit;
+			font-size: 26px;
+		}
+		.dialog button:focus, .dialog button:hover {
+			outline: none;
+			border-color: #f5f7fa;
+			background: #52606d;
+		}
+	</style>
+</head>
+<body>
+	<div id="surface"></div>
+	<input id="kbd" type="text" autocomplete="off" autocorrect="off" spellcheck="false">
+	<div id="toast" class="toast"></div>
+	<script src="mrcrypto.js"></script>
+	<script src="mrproto.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>

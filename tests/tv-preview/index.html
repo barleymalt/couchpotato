@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MagicRemote TV preview</title>
+<!--
+	Dev tool: renders the real TV app (tvapp/app/index.html) in a desktop browser with fake webOS APIs.
+	Serve the repository root over HTTP and open /tests/tv-preview/?scenario=first-run|home|connecting|not-paired|replace
+-->
+<script>
+	fetch("../../tvapp/app/index.html").then(function (r) { return r.text(); }).then(function (html) {
+		var fresh = "?" + Date.now(); // never run cached copies of the app's scripts
+		html = html.replace(/src="([^"]+\.js)"/g, 'src="$1' + fresh + '"');
+		html = html.replace("<head>", '<head><base href="../../tvapp/app/"><script src="../../tests/tv-preview/stub.js' + fresh + '"><\/script>');
+		document.open();
+		document.write(html);
+		document.close();
+	});
+</script>

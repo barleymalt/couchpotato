@@ -1,0 +1,5 @@
+{
+	"name": "com.magicremote.tv.service",
+	"version": "1.4.2",
+	"main": "service.js"
+}
