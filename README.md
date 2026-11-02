@@ -8,6 +8,12 @@ A rewrite of [MagicRemoteService](https://github.com/Cathwyler/MagicRemoteServic
 - **Paired and encrypted.** Only your TV can control your PC: every message is authenticated and encrypted with a key created during setup.
 - **Plug and play.** The PC finds the TV, installs the TV app itself, and works out its own IP, MAC address, the TV's HDMI input and which monitor is the TV.
 
+<p align="center">
+  <img src="docs/screenshot-tv.png" width="32%" alt="TV tab: your TV, setting up a TV, options">
+  <img src="docs/screenshot-buttons.png" width="32%" alt="Buttons tab: what each remote button does">
+  <img src="docs/screenshot-pointer.png" width="32%" alt="Pointer tab: pointer style and size">
+</p>
+
 > **Status:** early. Covered by automated tests (crypto vectors, the TV app and its background service talking to the PC server, packaging, settings) and tried on one LG TV with a Windows PC. Report what breaks.
 
 Couchpotato is free and open source. If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/barleymalt) ♥
@@ -124,6 +130,8 @@ dotnet run --project tests/Couchpotato.Tests    # needs Node.js, and port 3000 f
 ```
 
 To look at the TV screens in a desktop browser, serve the repository root (for example `python3 -m http.server 8765`) and open `http://localhost:8765/tests/tv-preview/?scenario=first-run` (also `home`, `connecting`, `connected`, `not-paired`, `replace`).
+
+The README screenshots come from `tools/screenshots/window.html`, a static copy of the settings window: `tools/make_screenshots.sh` renders it with Chrome.
 
 After changing the pointer art, run `python3 tools/make_pointer_styles.py` (Neon and Arcane, drawn as SVG; needs Pillow and `pip install resvg-py`) or `python3 tools/make_cursors.py` (the simple styles; needs Pillow).
 The logo comes from `tools/make_icon.py` (Pillow). The UI font is [Manrope](https://github.com/googlefonts/manrope) (SIL Open Font License 1.1, see `src/Couchpotato/Fonts/OFL.txt`), cut down to static Latin weights by `tools/make_fonts.py` (needs fontTools).

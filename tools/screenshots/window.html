@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Couchpotato window (for README screenshots)</title>
+<!--
+  A faithful static copy of the settings window, for README screenshots made on any OS by
+  tools/make_screenshots.sh. Pick the tab with ?tab=tv|buttons|pointer. Sample data only.
+-->
+<style>
+@font-face { font-family: Manrope; font-weight: 400; src: url(../../src/Couchpotato/Fonts/Manrope-Regular.ttf); }
+@font-face { font-family: Manrope; font-weight: 600; src: url(../../src/Couchpotato/Fonts/Manrope-SemiBold.ttf); }
+@font-face { font-family: Manrope; font-weight: 700; src: url(../../src/Couchpotato/Fonts/Manrope-Bold.ttf); }
+:root { --bg: #14181F; --surface: #1F2630; --hover: #2A3340; --field: #151A21; --border: #36404D; --text: #E8EDF2; --muted: #9AA5B1; --accent: #52C4A0; --on-accent: #0B261E; --danger: #F07E7E; }
+html, body { margin: 0; background: transparent; }
+body { padding: 28px 36px 44px; font-family: Manrope, sans-serif; color: var(--text); }
+.window { width: 880px; height: var(--h, 1000px); box-sizing: border-box; background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 20px 48px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; padding: 6px; }
+.titlebar { display: flex; align-items: flex-start; height: 72px; flex-shrink: 0; }
+.brand { display: flex; align-items: center; gap: 14px; flex-grow: 1; padding: 16px 0 0 30px; }
+.brand b { display: block; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.brand small { font-size: 14px; color: var(--muted); }
+.chip { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(82,196,160,.14); color: var(--accent); font-size: 15px; font-weight: 600; margin: 19px 12px 0 0; white-space: nowrap; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.caps { display: flex; }
+.caps span { width: 46px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.tabs { display: flex; gap: 8px; padding: 10px 30px 18px; flex-shrink: 0; }
+.pill { height: 44px; padding: 0 20px; border-radius: 22px; font: 600 15px Manrope, sans-serif; display: inline-flex; align-items: center; box-sizing: border-box; white-space: nowrap; }
+.pill.tab { border: 1px solid var(--border); color: var(--text); }
+.pill.on { background: var(--accent); border: 1px solid var(--accent); color: var(--on-accent); }
+.pill.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.pill.primary { background: var(--accent); color: var(--on-accent); border: 0; padding: 0 24px; }
+.pill.ghost { color: var(--danger); }
+.page { flex-grow: 1; overflow: hidden; padding: 4px 30px 30px; display: flex; flex-direction: column; gap: 20px; font-size: 15px; line-height: 1.5; }
+.intro { margin: 0; font-size: 16px; color: var(--muted); }
+.card { background: var(--surface); border-radius: 16px; padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; }
+.card h2 { margin: 0; font-size: 19px; font-weight: 700; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.step { display: flex; gap: 16px; }
+.num { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--hover); color: var(--accent); font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.step > div { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; padding-top: 3px; font-size: 16px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.field { height: 44px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; background: var(--field); display: flex; align-items: center; padding: 0 14px; font-size: 15px; }
+.combo { justify-content: space-between; padding-right: 14px; }
+.combo svg { flex-shrink: 0; margin-left: 12px; }
+.link { color: var(--accent); font-weight: 600; }
+.toggle { display: flex; align-items: center; gap: 14px; }
+.track { width: 46px; height: 26px; border-radius: 13px; background: var(--border); position: relative; flex-shrink: 0; }
+.track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); }
+.track.on { background: var(--accent); }
+.track.on::after { left: 23px; background: var(--on-accent); }
+.note { margin: -8px 0 0 60px; font-size: 14px; color: var(--muted); }
+.tv { display: flex; align-items: center; gap: 16px; }
+.bindings { display: grid; grid-template-columns: 45% 55%; row-gap: 8px; align-items: center; }
+.bindings span { font-weight: 600; }
+.tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+.tile { width: 124px; height: 128px; box-sizing: border-box; border-radius: 12px; background: var(--field); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 14px 4px 12px; }
+.tile img, .tile svg { width: 62px; height: 62px; }
+.tile { text-align: center; white-space: nowrap; }
+.tile.on { border: 2.5px solid var(--accent); color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="window" id="window">
+  <div class="titlebar">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#52C4A0"/><rect x="13" y="7" width="14" height="26" rx="7" fill="#0B261E"/><circle cx="20" cy="15" r="3.2" fill="#52C4A0"/><circle cx="20" cy="25" r="1.6" fill="#52C4A0"/></svg>
+      <div><b>Couchpotato</b><small>Version 2.0.1</small></div>
+    </div>
+    <div class="chip"><i></i>Connected to LG TV</div>
+    <div class="caps">
+      <span><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="#E8EDF2"/></svg></span>
+      <span><svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" fill="none" stroke="#E8EDF2"/></svg></span>
+      <span><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10" stroke="#E8EDF2"/></svg></span>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="page" id="page"></div>
+</div>
+<script>
+const tab = new URLSearchParams(location.search).get('tab') || 'tv';
+const chevron = '<svg width="14" height="9" viewBox="0 0 14 9"><path d="M1.5 1.5L7 7l5.5-5.5" fill="none" stroke="#E8EDF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const combo = (text, width) => `<div class="field combo" style="width:${width}">${text}${chevron}</div>`;
+
+document.getElementById('tabs').innerHTML = [['tv', 'TV'], ['buttons', 'Buttons'], ['pointer', 'Pointer']]
+  .map(([id, label]) => `<span class="pill tab${id === tab ? ' on' : ''}">${label}</span>`).join('');
+
+const pages = {
+  tv: () => `
+    <div class="card"><h2>Your TV</h2>
+      <div class="tv">
+        <svg width="36" height="36" viewBox="0 0 36 36"><rect x="3" y="7" width="30" height="19" rx="3" fill="none" stroke="#9AA5B1" stroke-width="2"/><path d="M12 31h12" stroke="#9AA5B1" stroke-width="2" stroke-linecap="round"/></svg>
+        <div style="flex-grow:1"><div style="font-weight:600">LG TV · 192.168.1.20</div><div class="small" style="color:var(--accent)">Connected · TV app 2.0.0</div></div>
+        <span class="pill ghost">Forget</span>
+      </div>
+    </div>
+    <div class="card"><h2>Set up a TV</h2>
+      <p class="intro" style="margin-top:-6px">Also use this to update the TV app after updating Couchpotato. Your pairing is kept.</p>
+      <div class="step"><span class="num">1</span><div>
+        <span>On the TV, open the Developer Mode app (free in the LG Content Store), sign in and turn on Dev Mode Status. After the TV restarts, open it again and turn on Key Server.</span>
+        <span class="link">Help with Developer Mode</span></div></div>
+      <div class="step"><span class="num">2</span><div><span>Pick your TV, or type its IP address</span>
+        <div class="row">${combo('LG TV (192.168.1.20)', '300px')}<span class="pill secondary">Search again</span></div></div></div>
+      <div class="step"><span class="num">3</span><div><span>Type the passphrase shown in the Developer Mode app</span>
+        <div class="row"><div class="field" style="width:180px"></div><span class="pill primary">Install on TV</span></div></div></div>
+    </div>
+    <div class="card"><h2>Options</h2>
+      <div class="toggle"><span class="track on"></span>Start with Windows</div>
+      <div class="toggle"><span class="track"></span>Let the remote work in administrator windows too</div>
+      <p class="note">Task Manager, installers, and apps you allowed in a Windows permission prompt. Windows asks for permission once, and Couchpotato moves to Program Files. The permission prompt itself and the lock screen still need the PC's mouse or keyboard.</p>
+    </div>
+    <p class="small muted" style="margin:0">This PC: LIVING-ROOM-PC · port 41234. If Windows asks whether Couchpotato may use the network, allow it on private networks.</p>
+    <span class="link">Free and open source · Support it ♥</span>`,
+
+  buttons: () => {
+    const rows = [['OK (when the pointer is hidden)', 'Enter'], ['Back (short press)', 'Esc'], ['Up', 'Arrow up'], ['Down', 'Arrow down'],
+      ['Left', 'Arrow left'], ['Right', 'Arrow right'], ['Red', 'Shut down / sleep menu'], ['Green', 'Windows key (Start)'],
+      ['Yellow', 'Right click'], ['Blue', 'Show the TV keyboard'], ['Play', 'Play / pause'], ['Pause', 'Play / pause'], ['Stop', 'Stop media'],
+      ['Rewind', 'Previous track'], ['Fast forward', 'Next track']];
+    return `
+    <p class="intro">Choose what each remote button does on the PC: pick an action, or pick Other keys and type keys joined with + (for example ctrl+shift+esc, win+r or f5). Press a button on the remote to find it here.</p>
+    <div class="card"><div class="bindings">${rows.map(([b, a]) => `<span>${b}</span>${combo(a, '100%')}`).join('')}</div></div>`;
+  },
+
+  pointer: () => {
+    const styles = [['neon', 'Neon'], ['arcane', 'Arcane'], ['drop', 'Drop'], ['classic', 'Classic'], ['cartoon', 'Cartoon'], ['retro', 'Retro']];
+    const arrow = '<svg viewBox="0 0 34 34"><path d="M6 3L6 27L12.5 21L17 31L21.5 29L17 19.5L25.5 19.5Z" fill="#fff" stroke="#111" stroke-width="2" stroke-linejoin="round"/></svg>';
+    const tiles = styles.map(([id, name]) => `<div class="tile${id === 'neon' ? ' on' : ''}"><img src="../../src/Couchpotato/Cursors/${id}-normal.png" alt="">${name}</div>`).join('')
+      + `<div class="tile">${arrow}Windows default</div>`;
+    const sizes = ['Small', 'Medium', 'Large', 'Huge'].map(s => `<span class="pill ${s === 'Large' ? 'on' : 'secondary'}">${s}</span>`).join('');
+    return `
+    <p class="intro">The pointer on the PC while the TV is connected. Big pointers are easy to follow from the sofa; your usual pointer comes back as soon as the TV disconnects.</p>
+    <div class="card"><h2>Style</h2><div class="tiles">${tiles}</div></div>
+    <div class="card"><h2>Size</h2><div class="row">${sizes}</div></div>
+    <div class="card"><h2>Pointer packs</h2>
+      <p class="muted" style="margin:0">Windows pointer sets (.cur and .ani files, usually with an install.inf) work too: put each one in its own folder inside the pointers folder, then look again. Packs made for small screens can look soft at the bigger sizes.</p>
+      <div class="row"><span class="pill secondary">Open the pointers folder</span><span class="pill" style="color:var(--text)">Look again</span></div></div>`;
+  },
+};
+document.getElementById('page').innerHTML = pages[tab]();
+const heights = { tv: 1080, buttons: 1000, pointer: 1020 };
+document.getElementById('window').style.setProperty('--h', heights[tab] + 'px');
+</script>
+</body>
+</html>
