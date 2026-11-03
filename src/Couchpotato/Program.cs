@@ -202,8 +202,14 @@ namespace Couchpotato
                 }
                 catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse)
                 {
-                    MessageBox.Show("Couchpotato can't use network port " + store.Port + " because another program is using it.\n\n" +
-                                    "If the old MagicRemoteService is installed, stop or uninstall it first.",
+                    var owner = PortOwner.Find(store.Port);
+                    Log.Warn("Port " + store.Port + " is in use" + (owner.HasValue ? " by " + owner.Value.Name + " (process " + owner.Value.Pid + ")" : ""));
+                    string who = owner.HasValue ? owner.Value.Name + " (process " + owner.Value.Pid + ")" : "another program";
+                    string fix = owner.HasValue && owner.Value.Name.IndexOf("MagicRemote", StringComparison.OrdinalIgnoreCase) >= 0
+                        ? "That's MagicRemote, Couchpotato's old name or the old MagicRemoteService. Uninstall it (Settings → Apps), and if it still starts " +
+                          "with Windows, delete its \"MagicRemote\" task in Task Scheduler."
+                        : "Quit that program or change its port, then start Couchpotato again. Task Manager → Details lists processes by id.";
+                    MessageBox.Show("Couchpotato can't use network port " + store.Port + " because " + who + " is using it, so the TV can't reach it.\n\n" + fix,
                                     "Couchpotato", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }

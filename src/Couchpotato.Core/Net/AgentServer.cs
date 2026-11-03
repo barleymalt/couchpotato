@@ -28,6 +28,7 @@ namespace Couchpotato.Net
         readonly ConfigStore _store;
         readonly IInputSink _sink;
         readonly FailureLimiter _limiter = new FailureLimiter();
+        readonly Dictionary<string, DateTime> _failureLogged = new Dictionary<string, DateTime>();
         readonly Dictionary<IPAddress, int> _pending = new Dictionary<IPAddress, int>();
         TcpListener _listener;
         DiscoveryResponder _discovery;
@@ -125,18 +126,17 @@ namespace Couchpotato.Net
                 {
                     if (IsWebPageOrigin(ws.Origin))
                     {
-                        Log.Warn("Rejected browser connection from " + ip + " (origin " + ws.Origin + ")");
-                        Fail(ip);
+                        Fail(ip, "a web page (origin " + ws.Origin + "), not the TV app");
                         return;
                     }
 
-                    if (!Handshake.TryParseHello(ws.Read(), out var tvId, out var tvNonce)) { Fail(ip); return; }
+                    if (!Handshake.TryParseHello(ws.Read(), out var tvId, out var tvNonce)) { Fail(ip, "its first message isn't the TV app's hello"); return; }
                     var tv = _store.FindTv(tvId, out var key);
-                    if (tv == null) { Fail(ip); return; }
+                    if (tv == null) { Fail(ip, "it isn't a TV paired with this PC; pair it again (Set up a TV)"); return; }
 
                     var pcNonce = Handshake.RandomBytes(Handshake.NonceLength);
                     ws.Write(Handshake.BuildChallenge(key, tvId, tvNonce, pcNonce));
-                    if (!Handshake.VerifyResponse(key, tvId, tvNonce, pcNonce, ws.Read())) { Fail(ip); return; }
+                    if (!Handshake.VerifyResponse(key, tvId, tvNonce, pcNonce, ws.Read())) { Fail(ip, "TV '" + tv.Name + "' has a different pairing key; pair it again (Set up a TV) and choose Replace on the TV"); return; }
 
                     var channel = Handshake.CreateChannel(key, tvId, tvNonce, pcNonce, forPc: true);
                     deadline.Dispose();
@@ -178,7 +178,7 @@ namespace Couchpotato.Net
             catch (Exception e) when (e is IOException || e is SocketException || e is ProtocolViolationException || e is ObjectDisposedException)
             {
                 Log.Info("Connection from " + ip + " ended: " + e.GetType().Name + " " + e.Message);
-                if (tvName == null) Fail(ip);
+                if (tvName == null) Fail(ip, "the connection ended before it logged in");
             }
             catch (Exception e)
             {
@@ -199,8 +199,18 @@ namespace Couchpotato.Net
             }
         }
 
-        void Fail(IPAddress ip)
+        /// <summary>Records a refused connection and logs why (at most once a minute per address and reason; never keys).</summary>
+        void Fail(IPAddress ip, string reason)
         {
+            var key = ip + " " + reason;
+            lock (_failureLogged)
+            {
+                if (!_failureLogged.TryGetValue(key, out var last) || DateTime.UtcNow - last > TimeSpan.FromMinutes(1))
+                {
+                    _failureLogged[key] = DateTime.UtcNow;
+                    Log.Warn("Refused a connection from " + ip + ": " + reason);
+                }
+            }
             if (_limiter.RecordFailure(ip)) Log.Warn("Too many failed connections from " + ip + "; ignoring it for a while");
             AuthenticationFailed?.Invoke(ip);
         }

@@ -2,6 +2,10 @@
 
 Updating: extract the new zip, run its `Couchpotato.exe` and choose **Update**. When an entry below says the TV app changed, also open the **TV** tab → **Install on TV**; the pairing is kept. From 1.4.0 the PC tells you when the TV app needs updating.
 
+## 2.0.2 (TV app 2.0.0: no need to reinstall it)
+- When the network port is taken, Couchpotato says which program has it (for example a leftover MagicRemote) and how to free it.
+- The log says why a TV's connection was refused: not a paired TV, a different pairing key (pair again and choose Replace on the TV), or an unexpected message. It never logs keys.
+
 ## 2.0.1 (TV app 2.0.0: no need to reinstall it)
 - Couchpotato now comes as a zip: Couchpotato.exe with its libraries as plain files next to it, instead of packed inside the exe and unpacked in memory, which antivirus software (Microsoft Defender among them) took for malware. Extract the whole zip before running it; Couchpotato says so if you don't.
 - Installing, updating and administrator mode copy the libraries along with the exe.
